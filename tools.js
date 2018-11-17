@@ -3,17 +3,17 @@
  */
 
 /**封装的方法：
- scrollPositonOperate; //获取滚动页面的滚动位置，或滚动到指定位置
+ ScrollPositonOperate; //获取滚动页面的滚动位置，或滚动到指定位置
  toast ;//toast窗口的弹出和关闭（提示窗口）
  getPlatform; verifyPlatform2; verifyPlatform;//判断当前平台
  loading；//加载条
  alr; alrBtn; alrBtn2; alr2; alrBtn22; alrBtn22Step;//对话框
- showHideEleCtrl；showHideEleOperate；showHideEleCtrl2；//显示影藏元素
+ showHideEleCtrl；ShowHideEleOperate；showHideEleCtrl2；//显示影藏元素
  pageOperate;//打开页面 页面跳转 传值和取值的函数集
  openPageData2；openPageData；//打开新页面并传递数据，（与hrefData
  配合使用）
  closePage；//关闭页面
- imgOperate;//图片操作
+ ImgOperate;//图片操作
  scaner；//扫描二维码
  takePicture；//拍照
  deviceOperate；//设配操作
@@ -49,7 +49,7 @@
  stepEnter://巡店任务跳转
  strReplaceOperate: //字符替换处理
  isDoorInvest: //判断是否是门店投资中心的人员
- popoverOperate://浮动窗口操作
+ PopoverOperate://浮动窗口操作
  * **/
 
 var ONE_DAY_TIME = 86400000;//一天的时间，单位毫秒
@@ -71,27 +71,86 @@ var isDebug = true;//是否启动调试，true：启动；false:不启动
 var submitOnce = true;//提交一次，防止多次提交
 
 
+
+
+
 /**
- * 设置video标签是否可以内嵌播放
- * @param bool boolean;//true:允许内嵌播放，false:禁止内嵌播放;默认设置true
- */
-function setVideoInlinePlayEnable(bool) {
-    verifyPlatform(function () {
-        bool = bool == undefined ? true : bool;
-        uexWindow.setInlineMediaPlaybackEnable(bool);
-    });
-}
-window.onload = function () {
-    setTimeout(function () {
-        setVideoInlinePlayEnable();
-    },1000);
+ * 平台验证操作，可获取在什么平台，主要是Android/ios/浏览器
+ * **/
+var PlatformOperate = {
+    /**
+     * 是否是手机
+     * return true;//手机
+     * false //iPad
+     * **/
+    isPhone: (window.navigator.userAgent.indexOf('iPhone') >= 0) ? true : false,
+    /**
+     * 获取当前平台
+     * @param 0 是否 是浏览器 ,是返回true，否则false
+     *  @param 1 是否 android ,是返回true，否则false
+     *  @param 2 是否 ios ,是返回true，否则false
+     *  @param 3 是否 ios 或android ,是返回true，否则false
+     * **/
+    getPlatform:function(tag) {
+
+        // var isPhone = (window.navigator.platform != "Win32");
+        // var isAndroid = (window.navigator.userAgent.indexOf('Android')>=0)?true : false;
+        // alert("platform : " + window.navigator.userAgent);
+        //ipad (window.navigator.userAgent.indexOf('iPad')>=0)
+
+        switch (tag){
+            case 0:{
+                return (window.navigator.userAgent.indexOf('Brewer') >= 0)? true : false;
+            }
+            case 1:{
+                return (window.navigator.userAgent.indexOf('Android') >= 0)? true : !isPush;
+            }
+            case 2:{
+                return (window.navigator.userAgent.indexOf('OS') >= 0) ? true : false;
+            }
+            case 3:{
+                return (PlatformOperate.getPlatform(1) || PlatformOperate.getPlatform(2))
+                    ? true
+                    : false;
+            }
+        }
+    },
+    /**
+     * 验证平台，并且提示信息，
+     * @param func 是ios或android平台时的回调函数
+     * @param funErr 不是ios或android平台时的回调函数
+     * **/
+    verifyPlatform2:function(func,funErr) {
+        if(PlatformOperate.getPlatform(3)){
+            func();
+            // alert("func");
+        }
+        else if(funErr != null)
+        {
+            // alert("err");
+            funErr();
+        }
+
+    },
+    /**
+     * 验证平台，并且提示信息，
+     * @param func 回调函数
+     * **/
+    verifyPlatform:function(func) {
+        PlatformOperate.verifyPlatform2(function () {
+            func();
+        },function () {
+            // alr2("请安装app！");
+        });
+    }
 };
 
 /**
- * 获取滚动页面的滚动位置，或滚动到指定位置
+ * 获取滚动页面的滚动位置，或滚动到指定位置，浏览器滚动操作
  * **/
-var scrollPositonOperate = {
-    /**记录滚动位置
+var ScrollPositonOperate = {
+    /**
+     * 记录滚动位置
      * **/
     posion:{
         contHeight:0,//标签内容的滚动后的高度
@@ -124,7 +183,7 @@ var scrollPositonOperate = {
     },
 
     /**获取滚动位置
-     * return scrollPositonOperate.posion;**/
+     * return ScrollPositonOperate.posion;**/
     getScrollPostion:function () {
         var posion = {
             scrollTop:document.body.scrollTop,//获取滚动到距离body顶部的位置
@@ -133,7 +192,7 @@ var scrollPositonOperate = {
             scrollHeight:document.body.scrollHeight//现在body的高度
         };
 
-        scrollPositonOperate.posion = posion;
+        ScrollPositonOperate.posion = posion;
 
         return posion;
     },
@@ -149,410 +208,770 @@ var scrollPositonOperate = {
      * @param tagId string,//标签id
      * **/
     getContTagHeight:function (tagId) {
-        scrollPositonOperate.posion.contHeight = document.getElementById(tagId).offsetHeight;
-        scrollPositonOperate.posion.contHeightFinal = scrollPositonOperate.posion.contHeight;
-        // toast(scrollPositonOperate.posion.contHeight);
+        ScrollPositonOperate.posion.contHeight = document.getElementById(tagId).offsetHeight;
+        ScrollPositonOperate.posion.contHeightFinal = ScrollPositonOperate.posion.contHeight;
+        // toast(ScrollPositonOperate.posion.contHeight);
     }
 };
 
 /**
- * 保存数据
- * @param key string,//键值
- * @param value Object,//数据值
+ * 页面跳转 传值和取值的函数集
  * **/
-function setJsonData(key,value) {
-    // var obj = JSON.stringify({b:0});
-    // obj = {b:0};
-    // var obj = JSON.stringify([0]);
-    // obj = [0];
-    // alert("dd: "+ (typeof(obj) == 'object'));
+var PageGuideOperate = {
+    config:{
+        isOpenedWeb:false,//是否已经打开浏览器
+    },
+    /**
+     * 打开页面 全路径
+     * @param title 页面标识，在移动平台有用
+     *@param pageSrc 页面路径 全路径
+     *@param flag number,//页面标记 flag=128时页面支持缩放,默认为0
+     *  **/
+    openPageFullPath:function(title,pageSrc,flag) {
+        // alert(pageSrc.substring((pageSrc.indexOf('?') + 1)));
+        flag = flag == undefined || flag == null ? 0 : flag;
 
-    //0 是对象 1是字符串
-    if(typeof(value) == 'object')
-    {
-        //0 是对象 1是字符串
-        value = "0" + JSON.stringify(value);
-    }
-    else
-    {
-        //0 是对象 1是字符串
-        value = "1" + value;
-    }
+        var  index = pageSrc.indexOf('?');
+        if(index > -1)
+        {
+            appcan.locStorage.setVal("tempData", pageSrc.substring((index + 1)));
+        }
 
-    appcan.locStorage.setVal(key,value);
+        /* pageSrc = pageSrc.substring(0,pageSrc.indexOf('.html') + 5 );
+         if(PlatformOperate.isPhone)
+         {
+             pageSrc = pageSrc.substring(0,pageSrc.lastIndexOf(".html")) + "_iph.html";
+         }*/
+
+        // pageSrc = pageSrc.indexOf("http") == 0 ? pageSrc : IPConfig.isDebug ? IPConfig.IPDebug + "/phone/pages" + pageSrc.substring(pageSrc.indexOf("/")) : pageSrc;
+
+        if(PlatformOperate.getPlatform(3)){
+
+            uexWindow.open(title, '0', pageSrc, 2, '', '', flag,0);
+
+            /*  loading(true);
+              window.location.href = pageSrc;  //电脑调试用
+              alert(pageSrc);
+              appcan.openWinWithUrl(title,pageSrc); //打包用*/
+            /**
+             windName	String	是	窗口名字，可为空，不能为”root”，若已经打开过该名字的窗口，则直接跳转至该窗口。
+             dataType	Number	是	窗口载入的数据的类型，0：url方式载入；1：html内容方式载入
+             data	String	是	url或html数据，支持“wgtroot://” 协议头，此协议头用于某些将项目部署在服务器上 的appcan应用，在应用执行过程中加载本地网页用。当dataType为0时，url支持相对路径、 绝对路径。其中，当url以“wgtroot://” 协议开头时，支持从服务器网页中打开本地应用沙箱中相应widget目录下的网页文件。 例如：当前窗口加载的是服务器上的http://www.xxx.com/xxx.html 网页，如果在xxx.html页面中open一个窗口时，传入的data为“wgtroot://index.html”, 那么本次open执行时，引擎将会到本应用沙箱目录的widget路径下去寻找此页面， 例如Android上找到的路径会是：file:///android_assert/widget/index.html 当dataType为1时，把相应html的内容传进去（不建议）
+             animationID	Number	是	动画ID，详见术语表-WindowAnimationId 窗口动画Id
+             w	Number	是	窗口宽度，请传0
+             h	Number	是	窗口高度，请传0
+             flag	Number	是	窗口标记，默认传空为0，详见CONSTANT中其他标记的窗口属性WindowFlags
+             animDuration	Number	否	动画持续时长，单位为毫秒，默认为260毫秒
+             * **/
+            // uexWindow.open(windName,dataType,data,animID,w,h,flag,animDuration,extras);
+            /* uexWindow.open(title, '0', pageSrc, 0, '', '',0,0);
+             uexWindow.open({
+                 name:title,
+                 data:pageSrc,
+                 animID:0,
+                 flag:1024
+             });*/
+            /*uexWindow.openPopover({
+                name:title,
+                url:pageSrc,
+                x:400,
+                y:0,
+                bottomMargin:100
+            });*/
+            /*appcan.window.open({
+                name :title,
+                dataType : 0,
+                data : pageSrc,
+                aniId:2,
+                type:0,
+                // animDuration:1000
+            });*/
+        }
+        else
+        {
+            window.location.href = pageSrc;
+        }
+    },
+    /**
+     * 打开页面 并且传递数据
+     * @param title 页面标识，在移动平台有用
+     * @param pageSrc 页面路径 全路径
+     * @param data 传递数据为字符串
+     * @param flag number,//页面标记 flag=128时页面支持缩放,默认为0
+     **/
+    openPageData:function(title,pageSrc,data={}, flag) {
+
+        if(typeof(data) == 'object' || data.constructor == Array)
+        {
+            //0,表示是json,1表示是字符串
+            data = "0" + JSON.stringify(data);
+        }
+        else
+        {
+            data = "1" + data;
+        }
+
+        PageGuideOperate.openPageFullPath(pageSrc,pageSrc + "?" + data,flag);
+    },
+    /**
+     * 关闭页面
+     * @param isTimeout,// 是否延迟关闭，true延迟
+     **/
+    closePage:function(isTimeout) {
+
+        if(PlatformOperate.getPlatform(3)){
+            // if(true){
+
+            if (PageGuideOperate.config.isOpenedWeb){
+                BrowerOperate.closePageBrower();
+                return;
+            }
+
+            if(isTimeout != null && isTimeout != undefined)
+            {
+                // appcan.window.close(-1);
+                setTimeout(function () {
+                    /**animID	Number	否	为空时无动画，-1时代表Open时指定动画的方向动画
+                     animDuration	Number	否	动画持续时长，单位为毫秒，默认为260毫秒
+                     * **/
+                    // uexWindow.close(animID,animDuration);
+                    uexWindow.close();
+                    // uexWindow.close({
+                    //     animID:0,
+                    //     animDuration:0
+                    // });
+                    // appcan.window.close(0);
+                    // uexWindow.close();
+                },1000);
+
+            }
+            else
+            {
+
+                // uexWindow.onStateChange = function(state){
+                //     alert("ds");
+                //     // var arr = state?"压入后台":"回到前台";
+                //     // console.log(arr);
+                //     // if(!state){
+                //     // }
+                // }
+                // uexWindow.close();
+                // appcan.window.evaluatePopoverScript("guide","../guide/guide.html",);
+                // appcan.window.close(13);
+
+                // uexWindow.close({
+                //     animID:0,
+                //     animDuration:0
+                // });
+
+                // uexWindow.close(1);
+                uexWindow.close({
+                    animID:13
+                });
+
+                // setTimeout(function () {
+                //     alert("close");
+                //     uexWindow.reload();
+                // },1000);
+
+            }
+
+
+        }
+        else
+        {
+            window.history.back();
+        }
+    },
+    /**
+     * 关闭页面
+     * @apram data,// 需要回传的数据
+     * @apram isTimeout,// 是否延迟关闭，true延迟
+     **/
+    closePageData:function(data,isTimeout) {
+        if(data.length == undefined)
+        {
+            //0,表示是json,1表示是字符串
+            data = "0" + JSON.stringify(data);
+        }
+        else
+        {
+            data = "1" + data;
+        }
+        appcan.locStorage.setVal("tempData",data);
+        PageGuideOperate.closePage(isTimeout);
+    },
+    /**
+     * 通过本地跳转传参时，返回数据
+     * **/
+    getHrefData:function() {
+        // alert(encodeURI('http://baidu.com?hello=您好&word=文档'));
+        // console.log("href 2 : " + decodeURI(window.location.href));
+        // console.log("href 3 : " + window.location.search);
+        // alert(decodeURI(window.location.search.substring(1)));
+
+        /*var data = decodeURI(window.location.search.substring(1));
+
+    // alert(data);
+        var isJson = data[0];
+        data = data.substring(1);
+
+        ///0,表示是json,1表示是字符串
+        if(isJson == 0)
+        {
+            data = JSON.parse(data);
+            // alert("json");
+            // alert(data);
+        }
+        else if(isJson == 2)
+        {
+            data = appcan.locStorage.getVal("tempData");
+            isJson = data[0];
+            data = data.substring(1);
+            ///0,表示是json,1表示是字符串
+            if(isJson == 0)
+            {
+                data = JSON.parse(data);
+            }
+        }*/
+
+        var data = appcan.locStorage.getVal("tempData");
+
+        if(data != null && data != 'null')
+        {
+            var isJson = data[0];
+            data = data.substring(1);
+            ///0,表示是json,1表示是字符串
+            if(isJson == 0)
+            {
+                data = JSON.parse(data);
+            }
+        }
+        else
+        {
+            data = {};
+        }
+
+
+        return data;
+
+    },
+    /**
+     * 页面传递数据转化json
+     * **/
+    getHrefDataJson:function() {
+        var param = PageGuideOperate.getHrefData();
+
+        if(param != '' && param != null && param != undefined)
+        {
+            param = JSON.parse(param);
+            // alert(param);
+        }
+        else
+        {
+            param = {
+                id:'',//任务id
+                title:'新店选址',//标题栏信息
+            }
+            // alert("d");
+        }
+
+        return param;
+    }
 }
 
 /**
- * 获取json数据
- * @param key string,//键值
+ * 本地存储操作
  * **/
-function getJsonData(key) {
-
-    var val = appcan.locStorage.getVal(key);
-    if(val == null)
-    {
-        // alert("空");
-        return null;
-    }
-    //0 是对象 1是字符串
-    if(val[0] == '0')
-    {
-        val = val.substring(1);
-        return val == '' || val == undefined || val == null ? null : JSON.parse(val);
-    }
-    else
-    {
-        val = val.substring(1);
-        return val;
-    }
-
-}
-
-/**
- * json本地存储处理
- * **/
-var jsonOperate = {
-    /**保存数据
+var LocalStoreOperate = {
+    /**
+     * 保存数据
      * @param key string,//键值
-     * @param value Object,//数据值
+     * @param value Object,//数据值，可以是json对象，提取时也是json对象；也可以是字符串，提取时也是字符串
      * **/
-    setJsonData:function (key,value) {
-        setJsonData(key,value);
+    setData:function (key,value) {
+        // var obj = JSON.stringify({b:0});
+        // obj = {b:0};
+        // var obj = JSON.stringify([0]);
+        // obj = [0];
+        // alert("dd: "+ (typeof(obj) == 'object'));
+
+        //0 是对象 1是字符串
+        if(typeof(value) == 'object')
+        {
+            //0 是对象 1是字符串
+            value = "0" + JSON.stringify(value);
+        }
+        else
+        {
+            //0 是对象 1是字符串
+            value = "1" + value;
+        }
+
+        appcan.locStorage.setVal(key,value);
     },
-    /**获取json数据
+    /**
+     * 获取数据，若是子字符串则返回子字符串，若是json数据则返回json对象
      * @param key string,//键值
      * **/
-    getJsonData:function(key) {
-        return getJsonData(key);
+    getData:function(key) {
+        var val = appcan.locStorage.getVal(key);
+        if(val == null)
+        {
+            // alert("空");
+            return null;
+        }
+        //0 是对象 1是字符串
+        if(val[0] == '0')
+        {
+            val = val.substring(1);
+            return val == '' || val == undefined || val == null ? null : JSON.parse(val);
+        }
+        else
+        {
+            val = val.substring(1);
+            return val;
+        }
     },
-    /**设置返回是否刷新
+    /**
+     * 设置返回是否刷新
      * @param bool boolean;//true:返回需要刷新，false:返回不刷新
      * @param data string/json;//刷新需要回传的数据
      * **/
     setIsRefresh:function (bool,data) {
         bool = bool == undefined ? false : bool;
-        data == undefined ? "" :setJsonData("tempData",data);
-        setJsonData("backToRefresh",bool);
+        data == undefined
+            ? ""
+            : LocalStoreOperate.setData("tempData",data);
+        LocalStoreOperate.setData("backToRefresh",bool);
     },
-    /**获取是否刷新
+    /**
+     * 获取是否刷新
      * **/
     getIsRefresh:function () {
-        var bool = getJsonData("backToRefresh");
+        var bool = LocalStoreOperate.getData("backToRefresh");
         bool = bool == null || bool == 'null' ? true : bool == "false" ? false : true;
         return bool;
     },
-    /**设置是否强制刷新
+    /**
+     * 设置是否强制刷新
      * @param bool boolean;//true:返回需要刷新，false:返回不刷新
      * **/
     setIsForceRefresh:function (bool) {
         bool = bool == undefined ? true : bool;
-        setJsonData("backToForceRefresh",bool);
+        LocalStoreOperate.setData("backToForceRefresh",bool);
     },
-    /**获取是否强制刷新
+    /**
+     * 获取是否强制刷新
      * **/
     getIsForceRefresh:function () {
-        var bool = getJsonData("backToForceRefresh");
+        var bool = LocalStoreOperate.getData("backToForceRefresh");
         bool = bool == null || bool == 'null' ? false : bool == "false" ? false : true;
         return bool;
     },
-    /**获取刷新回传数据
+    /**
+     * 获取刷新回传数据
      * **/
     getRefreshData:function () {
-        return pageOperate.getHrefData();
+        return PageGuideOperate.getHrefData();
     }
 };
-jsonOperate.setIsRefresh();
+LocalStoreOperate.setIsRefresh();
 
 /**
- * toast窗口的弹出和关闭（提示窗口）
- * @param msg：提示的内容
- * @param data ,//提示显示时长 data = {
-
-   duration:1000,//显示时长（单位：ms）
-
-        position:5,位置显示在屏幕中的位置
-         1: left_top 左上
-         2: top 上中
-         3: right_top 右上
-         4: left 左中
-         5: middle 中间
-         6: right 右中
-         7: bottom_left 下左
-         8: bottom 下中
-         9: right_bottom 右下
-
-        type:0，是否有经度条
-         0: 没有进度条
-         1: 有进度条
- * }
- **/
-function toast(msg,data) {
-    var param = {
-        msg:msg,
-        duration:2000,
-        position:5,
-        type:0
-    };
-
-    if(data != null && data != undefined)
-    {
-        if(data.duration != null && data.duration != undefined)
-        {
-            param.duration = data.duration;
-        }
-        if(data.position != null && data.position != undefined)
-        {
-            param.position = data.position;
-        }
-        if(data.type != null && data.type != undefined)
-        {
-            param.type = data.type;
-        }
-
-    }
-    /** msg：提示的内容
-     duration：toast窗口显示的时间，单位毫秒
-     position：位置 5 为中间
-     type：0 没有菊花圈，1 有菊花圈
-     **/
-    return appcan.window.openToast(param);
-    // appcan.window.openToast(msg,length,5,0);
-
-}
-
-/**
- * 是否是手机
- * return true;//手机
- * false //iPad
+ * 设备操作
  * **/
-function isPhone() {
-    return (window.navigator.userAgent.indexOf('iPhone') >= 0) ? true : false;
-}
+var DeviceOperate = {
+    /**
+     * 配置信息
+     * @param callbackFuncW function,//横屏回调函数
+     * @param callbackFuncH function,//竖屏回调函数
+     * @param callbackFuncWH function,//横竖屏切换时回调函数
+     * @param orientation number,//屏幕方向: 1:竖屏,home键在屏幕下方; 2:横屏,home键在屏幕右边;4:竖屏,home键在屏幕上方; 8:横屏,home键在屏幕左边;
+     * **/
+    config:{
+        isExe:true,//屏幕切换执行
+        callbackFuncW:null,
+        callbackFuncH:null,
+        callbackFuncWH:null,
+        orientation:null,
+        onloadFunc:null,//所有window.uexOnload都会回调的函数
+    },
+    /**
+     * 屏幕变化监听事件
+     * @param callbackFuncW function,//横屏回调函数
+     * @param callbackFuncH function,//竖屏回调函数
+     * @param callbackFuncWH function,//横竖屏切换时回调函数
+     * **/
+    orientationChange:function (callbackFuncW,callbackFuncH, callbackFuncWH) {
+        appcan.ready(function() {
+            DeviceOperate.orientationCge(callbackFuncW,callbackFuncH, callbackFuncWH);
+        });
+    },
+    /**
+     * 初始化横竖屏切换回调函数
+     * **/
+    orientationCge:function (callbackFuncW,callbackFuncH, callbackFuncWH) {
+        /**
+         * mode	Number	是	屏幕方向,1-正竖屏;2-左横屏;4倒竖屏;8右横屏
+         * **/
+        uexDevice.onOrientationChange = function(mode){
 
-/**
- * 获取当前平台
- * @param 0 是否 是浏览器 ,是返回true，否则false
- *  @param 1 是否 android ,是返回true，否则false
- *  @param 2 是否 ios ,是返回true，否则false
- *  @param 3 是否 ios 或android ,是返回true，否则false
- * **/
-function getPlatform(tag) {
+            // setTimeout(function () {
+            //     document.width = screen.width;
+            //     document.height = screen.height;
+            // },0);
 
-    // var isPhone = (window.navigator.platform != "Win32");
-    // var isAndroid = (window.navigator.userAgent.indexOf('Android')>=0)?true : false;
-    // alert("platform : " + window.navigator.userAgent);
-    //ipad (window.navigator.userAgent.indexOf('iPad')>=0)
-
-    if(isDebug)
-    {
-        (window.navigator.userAgent.indexOf('Android') >= 0 ) ? isPush = false : "";
-        (window.navigator.userAgent.indexOf('Windows') >= 0 ) ? isPush = false : "";
-    }
-
-
-    switch (tag){
-        case 0:{
-            return (window.navigator.userAgent.indexOf('Brewer') >= 0)? true : false;
-            break;
-        }
-        case 1:{
-            return (window.navigator.userAgent.indexOf('Android') >= 0)? true : !isPush;
-            break;
-        }
-        case 2:{
-            return (window.navigator.userAgent.indexOf('OS') >= 0) ? true : false;
-            break;
-        }
-        case 3:{
-            return (getPlatform(1) || getPlatform(2)) ? isDebug ? (window.navigator.userAgent.indexOf('Nexus') >=0 ) ? false :true : true : false;
-            break;
-        }
-    }
-}
-
-/**
- * 加载条 startBool 为true开始，false关闭
- * @param startBool bool; 为true开始，false关闭,默认为启动加载条
- * @param tag int;undefine：加载条，锁屏；1：全局对话框，不锁屏,可同时操作其他的;
- * @param msg string;undefine：全局对话框，不锁屏,可同时操作其他的,显示默认信息；否则显示自定义信息
- * **/
-function loadingCircle(startBool,tag,msg) {
-    setTimeout(function () {
-        verifyPlatform2(function () {
-            if(getPlatform(1) || getPlatform(2))
+            if(DeviceOperate.config.isExe)
             {
-                if(startBool ){
-                    if(tag == undefined)
-                    {
-                        uexLoadingView.openCircleLoading();
+                DeviceOperate.config.isExe = false;
 
-                    }
-                    else if(tag == 1)
+                DeviceOperate.config.callbackFuncWH = callbackFuncWH != null && callbackFuncWH != undefined
+                    ? callbackFuncWH
+                    : DeviceOperate.config.callbackFuncWH;
+                DeviceOperate.config.callbackFuncW = callbackFuncW != null && callbackFuncW != undefined
+                    ? callbackFuncW
+                    : DeviceOperate.config.callbackFuncW;
+                DeviceOperate.config.callbackFuncH = callbackFuncH != null && callbackFuncH != undefined
+                    ? callbackFuncH
+                    : DeviceOperate.config.callbackFuncH;
+
+                if(DeviceOperate.config.callbackFuncWH != null && DeviceOperate.config.callbackFuncWH != undefined)
+                {
+                    DeviceOperate.config.callbackFuncWH(mode);
+                }
+
+                if(mode == 1 || mode == 4)
+                {
+                    // alert("正竖屏");
+                    if(DeviceOperate.config.callbackFuncW != null && DeviceOperate.config.callbackFuncW != undefined)
                     {
-                        msg == undefined ? '正在加载,请稍候...' : msg;
-                        uexWindow.createProgressDialog({
-                            title:'',
-                            msg:msg,
-                            canCancel:0
-                        });
+                        DeviceOperate.config.callbackFuncW();
                     }
                 }
-                else
+                else if(mode == 2 || mode == 8)
                 {
-                    if(tag == undefined)
+                    // alert("左横屏");
+                    if(DeviceOperate.config.callbackFuncH != null && DeviceOperate.config.callbackFuncH != undefined)
                     {
-                        uexLoadingView.close();
+                        DeviceOperate.config.callbackFuncH();
                     }
-                    else if(tag == 1)
+                }
+
+                setTimeout(function () {
+                    DeviceOperate.config.isExe = true;
+                },500);
+
+            }
+
+
+        };
+
+    },
+    /**
+     * 设置屏幕方向
+     * @param orientation number;// 1:竖屏,home键在屏幕下方; 2:横屏,home键在屏幕右边;4:竖屏,home键在屏幕上方; 8:横屏,home键在屏幕左边; 15:随系统设置自动转屏.
+     * **/
+    setOrientation:function (orientation) {
+        uexWindow.setOrientation(orientation);
+    },
+    /**
+     * 获取当前屏幕方向
+     * return number ;// 1:竖屏,home键在屏幕下方; 2:横屏,home键在屏幕右边;4:竖屏,home键在屏幕上方; 8:横屏,home键在屏幕左边; 15:随系统设置自动转屏.
+     * **/
+    getOrientation:function () {
+        DeviceOperate.config.orientation = window.orientation == 0
+            ? 1
+            : window.orientation == 90
+                ? 2
+                : window.orientation == 180
+                    ? 4
+                    : 8;
+        return DeviceOperate.config.orientation;
+    },
+    /**
+     * 是否链接网络(internet)
+     * **/
+    getInternetInfo:function () {
+        var internetInfo = uexDevice.getInfo(13);
+        if(internetInfo == -1)
+        {
+            toast("无法连接网络");
+        }
+        return internetInfo;
+    },
+    /**
+     * 当前窗口重载
+     * **/
+    reloadCurrentWindow:function () {
+        uexWindow.reload();
+    },
+    /**
+     * app重启或页面重载
+     * **/
+    reStart:function () {
+        PlatformOperate.verifyPlatform2(function () {
+            uexWidgetOne.restart();
+        },function () {
+            DeviceOperate.reloadCurrentWindow();
+        });
+    }
+};
+
+/**
+ * 浏览器组件操作
+ * **/
+var BrowerOperate = {
+    /**
+     * 浏览器配置数据
+     * x Number 否 View左上顶点x坐标，默认为0
+     y Number 否 View左上顶点y坐标，默认为0
+     width Number 否 View左上顶点y坐标，默认撑满屏幕
+     height Number 否 View左上顶点y坐标，默认撑满屏幕
+     * **/
+    config:{
+        x:null,
+        y:null,
+        width:null,
+        height:null
+    },
+    /**
+     * 打开外部网页
+     * @param url string,//打开网页地址
+     * x Number 否 View左上顶点x坐标，默认为0
+     y Number 否 View左上顶点y坐标，默认为0
+     width Number 否 View左上顶点y坐标，默认撑满屏幕
+     height Number 否 View左上顶点y坐标，默认撑满屏幕
+     url String 否 需要加载的url
+     * **/
+    openPageBrower:function (url,y,x,height,width) {
+        PlatformOperate.verifyPlatform(function () {
+            DeviceOperate.setOrientation(2);
+
+            var interval = setInterval(function () {
+
+                if(DeviceOperate.getOrientation() == 2)
+                {
+                    clearInterval(interval);
+                    /**各字段含义如下:
+
+
+                     字段名称
+
+                     类型
+
+                     是否必选
+
+                     说明
+
+
+                     debug Boolean 否 是否开启调试
+                     userAgent String 否 传此参数会添加到原有agent
+
+                     * **/
+                    var params = {
+                        debug:false,
+                    };
+                    uexWebBrowser.init(params);
+
+                    // var href = "https://e.honey-lovely.com/honey-lovely/jmkh/new2014/1215clgksuqiu%20(LMS)/res/index.html";
+                    // var param = {
+                    //     "basicData":{
+                    //         "index":1,
+                    //         "id":1000,
+                    //         "containerID":998,
+                    //         "x": 0,
+                    //         "y": 64,
+                    //         "w":320,
+                    //         "h":560
+                    //     },
+                    //     "detailedData":{
+                    //         "webUrl" :href
+                    //     }
+                    // };
+                    // uexWebView.open(param);
+
+                    /**各字段含义如下:
+
+
+                     字段名称
+
+                     类型
+
+                     是否必选
+
+                     说明
+
+
+                     x Number 否 View左上顶点x坐标，默认为0
+                     y Number 否 View左上顶点y坐标，默认为0
+                     width Number 否 View左上顶点y坐标，默认撑满屏幕
+                     height Number 否 View左上顶点y坐标，默认撑满屏幕
+                     url String 否 需要加载的url
+
+                     * **/
+                    var params = {
+                        // width:1080,
+                        // height:600,
+                        // x:600,
+                        // y:20,
+                        // url:"http://www.appcan.cn"
+                    };
+
+                    /*url != undefined && url != null ? params["url"] = url: '';
+                    x != undefined && x != null ? (params["x"] = x, browerOperate.config.x = x) : browerOperate.config.x != null ? params["x"] = browerOperate.config.x : '';
+                    y != undefined && y != null ? (params["y"] = y, browerOperate.config.y = y) : browerOperate.config.y != null ? params["y"] = browerOperate.config.y : '';
+                    width != undefined && width != null ? (params["width"] = width, browerOperate.config.width = width) : browerOperate.config.width != null ? params["width"] = browerOperate.config.width : '';
+                    height != undefined && height != null ? (params["height"] = height, browerOperate.config.height = height)
+                        : browerOperate.config.height != null ? params["height"] = browerOperate.config.height
+                        : getPlatform(2) && y != undefined && y != null ? (params["height"] = screen.height - y, browerOperate.config.height = screen.height - y)
+                            : '';*/
+
+                    url != undefined && url != null ? params["url"] = url: '';
+                    x != undefined && x != null ? params["x"] = x : '';
+                    y != undefined && y != null ? params["y"] = y : '';
+                    width != undefined && width != null ? params["width"] = width : '';
+                    // height != undefined && height != null ? params["height"] = height
+                    //     : ((deviceOperate.config.orientation == 2 || deviceOperate.config.orientation == 8)
+                    // && y != undefined && y != null) ? params["height"] = uexWindow.getHeight() - y
+                    //     : '';
+                    height != undefined && height != null ? params["height"] = height
+                        : (y != undefined && y != null) ? params["height"] = uexWindow.getHeight() - y
+                        : '';
+
+                    PageGuideOperate.config.isOpenedWeb = true;
+                    uexWebBrowser.open(params);
+                }
+
+            },50);
+
+        });
+    },
+    /**
+     * 关闭外部网页
+     * **/
+    closePageBrower:function(){
+        PageGuideOperate.config.isOpenedWeb = false;
+        DeviceOperate.setOrientation(1);
+        uexWebBrowser.reload();
+        setTimeout(function () {
+            uexWebBrowser.close();
+            DeviceOperate.setOrientation(15);
+        },200);
+
+    },
+    /**
+     * 获取标题
+     * callbackFunc function ;//回调函数,回传一个标题字段（string）;不传或传空（null）;return string,//标题
+     * **/
+    getPageTitle:function (callbackFunc) {
+        PlatformOperate.verifyPlatform(function () {
+            if(callbackFunc != undefined && callbackFunc != null)
+            {
+                var interval = setInterval(function () {
+                    var title = uexWebBrowser.getTitle();
+                    if(title != '')
                     {
-                        uexWindow.destroyProgressDialog();
+                        clearInterval(interval);
+                        callbackFunc(title);
+                    }
+                },100);
+            }
+            else
+            {
+                return uexWebBrowser.getTitle();
+            }
+        });
+    }
+};
+
+/**
+ * 对话框操作对象
+ * **/
+var DialogOperate = {
+    /**
+     * 对话框
+     * @param title string,//提示
+     * @param msg string,//信息
+     * **/
+    alr:function(title, msg) {
+        appcan.window.alert({
+            title: title,
+            content: msg,
+            buttons: '确定',
+            callback: function(err, data, dataType, optId) {
+                console.log(err, data, dataType, optId);
+            }
+        });
+    },
+    /**
+     * 对话框
+     * @param msg string,//信息
+     * **/
+    alr2:function(msg) {
+        DialogOperate.alr("提示",msg);
+    },
+    /**
+     * 对话框 2个按钮
+     * @param title string,//提示文本
+     * @param msg string,//显示内容文本
+     * @param callback function,//回调函数
+     * **/
+    alrBtn2:function(title, msg, callback) {
+        DialogOperate.alrBtn(title, msg, ['返回', '确认'],callback);
+    },
+    /**
+     * 对话框,2个按钮
+     * @param msg string,//显示内容文本
+     * @param callback function,//回调函数
+     * **/
+    alrBtn22:function( msg,callback) {
+        DialogOperate.alrBtn2("是否确认",msg,callback);
+    },
+    /**
+     * 对话框,2个按钮，步骤提示
+     * @param callback function,//回调函数
+     * **/
+    alrBtn22Step:function(callback) {
+        DialogOperate.alrBtn22("本步骤已操作完成，点击确认进入,下一步骤后，将不可返回本步骤",callback);
+    },
+    /**
+     * 对话框 2个按钮
+     * @param title string,//提示文本
+     * @param msg string,//显示内容文本
+     * @param btnList array,//按钮数组
+     * @param callback function,//回调函数 btnList的第一个按钮被点击时回调
+     * **/
+    alrBtn:function(title, msg, btnList,callback) {
+        appcan.window.alert({
+            title : title,
+            content : msg,
+            buttons : btnList,
+            callback : function(err, index, dataType, optId) {
+                // console.log(err, data, dataType, optId);
+                callback = callback.constructor == Array ? callback : [null,callback];
+                // if(callback != null && callback != undefined && index == 1)
+                if(callback != null && callback != undefined)
+                {
+                    if(callback[index] != null)
+                    {
+                        callback[index]();
                     }
                 }
             }
-        },null);
-    },0);
-
-    // var params = {
-    //     "x":20,
-    //     "y":20,
-    //     "w":300,
-    //     "h":40,
-    //     "style":
-    //         {
-    //             "styleId":0,
-    //             "pointNum":4,
-    //             "pointColor":["#ff4444", "#ffbb33", "#99cc00", "#33b5e5"]
-    //         }
-    // };
-    // uexLoadingView.open(JSON.stringify(params));
-
-}
-
-/**
- * 验证平台，并且提示信息，
- * @param func 是ios或android平台时的回调函数
- * @param funErr 不是ios或android平台时的回调函数
- * **/
-function verifyPlatform2(func,funErr) {
-    // alert("getPlatform(3) : " + getPlatform(3))
-    // if(getPlatform(3) && isPush){
-    if(getPlatform(3)){
-        func();
-        // alert("func");
+        });
     }
-    else if(funErr != null)
-    {
-        // alert("err");
-        funErr();
-    }
-
-}
-
-/**
- * 验证平台，并且提示信息，
- * @param func 回调函数
- * **/
-function verifyPlatform(func) {
-    verifyPlatform2(function () {
-        func();
-    },function () {
-        // alr2("请安装app！");
-    });
-}
-
-/**
- * 对话框
- * **/
-function alr(title, msg) {
-    appcan.window.alert({
-        title: title,
-        content: msg,
-        buttons: '确定',
-        callback: function(err, data, dataType, optId) {
-            console.log(err, data, dataType, optId);
-        }
-    });
-}
-
-/**
- * 对话框 2个按钮
- * @param title string,//提示文本
- * @param msg string,//显示内容文本
- * @param btnList array,//按钮数组
- * @param callback function,//回调函数 btnList的第一个按钮被点击时回调
- * **/
-function alrBtn(title, msg, btnList,callback) {
-    appcan.window.alert({
-        title : title,
-        content : msg,
-        buttons : btnList,
-        callback : function(err, index, dataType, optId) {
-            // console.log(err, data, dataType, optId);
-            callback = callback.constructor == Array ? callback : [null,callback];
-            // if(callback != null && callback != undefined && index == 1)
-            if(callback != null && callback != undefined)
-            {
-                if(callback[index] != null)
-                {
-                    callback[index]();
-                }
-            }
-        }
-    });
-}
-
-/**
- * 对话框 2个按钮
- * @param title string,//提示文本
- * @param msg string,//显示内容文本
- * @param callback function,//回调函数
- * **/
-function alrBtn2(title, msg, callback) {
-    alrBtn(title, msg, ['返回', '确认'],callback);
-}
-
-/**
- * 对话框
- * **/
-function alr2( msg) {
-    alr("提示",msg);
-}
-
-/**
- * 对话框,2个按钮
- * @param msg string,//显示内容文本
- * @param callback function,//回调函数
- * **/
-function alrBtn22( msg,callback) {
-    alrBtn2("是否确认",msg,callback);
-}
-
-/**
- * 对话框,2个按钮，步骤提示
- * @param callback function,//回调函数
- * **/
-function alrBtn22Step(callback) {
-    alrBtn22("本步骤已操作完成，点击确认进入,下一步骤后，将不可返回本步骤",callback);
-}
+};
 
 /**
  * 显示影藏元素
- *  @param hideIdArr [],影藏元素id数组
- *  @param showId显示元素id
- * **/
-function showHideEleCtrl(hideIdArr,showId) {
-    showHideEleCtrl2(hideId,showId,null);
-}
-
-/**
- * 显示影藏元素
- * @type {{eleIdArr: null, showId: null}}
  */
-var showHideEleOperate = {
+var ShowHideEleOperate = {
     eleIdArr:[],//元素id数组
     showId:null,//显示id
     showIdArr:[],//显示id数组
-    /**显示影藏元素
+    /**
+     * 显示影藏元素
      * @param hideId [],影藏元素id数组,可以传
      * @param showId int,显示元素的id或数组地址
      * func回调函数
@@ -569,19 +988,19 @@ var showHideEleOperate = {
         {
             if(!(hideIdArr.constructor == Array))
             {
-                showHideEleOperate.eleIdArr = [hideIdArr];
+                ShowHideEleOperate.eleIdArr = [hideIdArr];
             }
             else
             {
-                showHideEleOperate.eleIdArr = hideIdArr;
+                ShowHideEleOperate.eleIdArr = hideIdArr;
             }
 
         }
-// alert(JSON.stringify(showHideEleOperate.eleIdArr));
-        for(var i = 0; i < showHideEleOperate.eleIdArr.length; i++)
+
+        for(var i = 0; i < ShowHideEleOperate.eleIdArr.length; i++)
         {
-            // $("#" + showHideEleOperate.eleIdArr[i]).removeClass("uhide");
-            $("#" + showHideEleOperate.eleIdArr[i]).addClass("uhide");
+            // $("#" + ShowHideEleOperate.eleIdArr[i]).removeClass("uhide");
+            $("#" + ShowHideEleOperate.eleIdArr[i]).addClass("uhide");
         }
 
         if(showIdArr == null || showIdArr == undefined)
@@ -594,7 +1013,7 @@ var showHideEleOperate = {
         }
 
         var showId = null;
-        showHideEleOperate.showIdArr = showIdArr;
+        ShowHideEleOperate.showIdArr = showIdArr;
         for(var i = 0; i < showIdArr.length; i++)
         {
             showId = showIdArr[i];
@@ -602,21 +1021,21 @@ var showHideEleOperate = {
             var reg = new RegExp("^\\d+$");
             if(reg.test(showId))
             {
-                showId = showHideEleOperate.eleIdArr[showId];
-                // $("#" + showHideEleOperate.eleIdArr[showId]).removeClass("uhide");
+                showId = ShowHideEleOperate.eleIdArr[showId];
+                // $("#" + ShowHideEleOperate.eleIdArr[showId]).removeClass("uhide");
             }
             else if(showId != null)
             {
                 // $("#" + showId).removeClass("uhide");
             }
 
-            showHideEleOperate.showId = showId;
+            ShowHideEleOperate.showId = showId;
             $("#" + showId).removeClass("uhide");
             if(showId != undefined && showId != null)
             {
-                $("#" + showHideEleOperate.showId).blur(function () {
+                $("#" + ShowHideEleOperate.showId).blur(function () {
                     // alert(showId);
-                    $("#" + showHideEleOperate.showId).addClass("uhide");
+                    $("#" + ShowHideEleOperate.showId).addClass("uhide");
                     if(func != null && func != undefined)
                     {
                         func();
@@ -625,7 +1044,8 @@ var showHideEleOperate = {
             }
         }
     },
-    /**需要显示的元素，
+    /**
+     * 需要显示的元素，
      * @param showId ,显示元素的id或数组地址;可以传入数组或单个对象
      * @param isHisShow ,是否显示 已显示的元素;显示则传入，不显示则不传入；
      * **/
@@ -640,50 +1060,23 @@ var showHideEleOperate = {
 
             showId = [showId];
         }
-        if(isHisShow != undefined && showHideEleOperate.showIdArr.length > 0)
+        if(isHisShow != undefined && ShowHideEleOperate.showIdArr.length > 0)
         {
-            showId = showId.concat(showHideEleOperate.showIdArr);
+            showId = showId.concat(ShowHideEleOperate.showIdArr);
         }
-        showHideEleOperate.showHideEleCtrl(null,showId,null);
+        ShowHideEleOperate.showHideEleCtrl(null,showId,null);
     }
-}
-
-/**
- * 显示影藏元素
- * @param hideId [],影藏元素id数组
- * @param showId显示元素id
- * func回调函数
- * **/
-function showHideEleCtrl2(hideIdArr,showId,func) {
-
-    for(var i = 0; i < hideIdArr.length; i++)
-    {
-        $("#" + hideIdArr[i]).addClass("uhide");
-    }
-    $("#" + showId).removeClass("uhide");
-    $("#" + showId).blur(function () {
-        $("#" + showId).addClass("uhide");
-        func();
-    });
-    // $("#" + hideId).addClass("uhide");
-    // $("#" + showId).removeClass("uhide");
-    // $("#" + showId).focus();
-    //
-    // $("#" + showId).blur(function () {
-    //     $("#" + showId).addClass("uhide");
-    //     $("#" + hideId).removeClass("uhide");
-    //     func();
-    // });
-}
+};
 
 /**
  * 浮动窗口操作
  * **/
-var popoverOperate = {
-    /**打开一个浮动框
+var PopoverOperate = {
+    /**
+     * 打开一个浮动框
      * @param title 页面标识，在移动平台有用
-     *@param pageSrc 页面路径 全路径
-     *@param flag number,//页面标记 flag=128时页面支持缩放,默认为128
+     * @param pageSrc 页面路径 全路径
+     * @param flag number,//页面标记 flag=128时页面支持缩放,默认为128
      * **/
     openPopoverFullPath:function(title,pageSrc,flag) {
 
@@ -695,14 +1088,13 @@ var popoverOperate = {
             appcan.locStorage.setVal("tempData", pageSrc.substring((index + 1)));
         }
 
-        pageSrc = pageSrc.substring(0,pageSrc.indexOf('.html') + 5 );
-        if(isPhone())
+        /*pageSrc = pageSrc.substring(0,pageSrc.indexOf('.html') + 5 );
+        if(PlatformOperate.isPhone)
         {
             pageSrc = pageSrc.substring(0,pageSrc.lastIndexOf(".html")) + "_iph.html";
-            // alert(pageSrc);
-        }
+        }*/
 
-        if(getPlatform(1) || getPlatform(2)){
+        if(PlatformOperate.getPlatform(1) || PlatformOperate.getPlatform(2)){
 
             /* name:要打开弹出窗的名称
              dataType:新窗口填充的数据类型
@@ -765,273 +1157,15 @@ var popoverOperate = {
         }
 
     },
-    /**打开一个浮动框
-     * **/
-    openPopover:function(pageUrl,flag) {
-        popoverOperate.openPopoverFullPath(pageUrl,"../" + pageUrl + "/" + pageUrl + ".html", flag);
-    },
-    /**打开一个浮动框 并且传递数据
+    /**
+     * 打开一个浮动框 并且传递数据
      * @param title 页面标识，在移动平台有用
-     *@param pageSrc 页面路径
-     * *@param data 传递数据为字符串
-     * **/
-    openPopoverDataFullPath:function(title,pageUrl,data,flag) {
-
-        if(typeof(data) == 'object' || data.constructor == Array)
-        {
-            //0,表示是json,1表示是字符串
-            data = "0" + JSON.stringify(data);
-        }
-        else
-        {
-            data = "1" + data;
-        }
-
-        popoverOperate.openPopoverFullPath(title,pageUrl + "?" + data, flag);
-    },
-    /**打开一个浮动框 并且传递数据
-     *@param pageSrc 页面路径
-     * *@param data 传递数据为字符串
-     * **/
-    openPopoverData:function(pageUrl,data,flag) {
-
-        popoverOperate.openPopoverDataFullPath(pageUrl,"../"+ pageUrl + "/" + pageUrl + ".html",data,flag);
-    }
-}
-
-var pageParamTemp = null;
-
-/**
- * 页面跳转 传值和取值的函数集
- * **/
-var pageOperate = {
-    config:{
-        isOpenedWeb:false,//是否已经打开浏览器
-    },
-    /**打开页面 全路径
-     * @param title 页面标识，在移动平台有用
-     *@param pageSrc 页面路径 全路径
-     *@param flag number,//页面标记 flag=128时页面支持缩放,默认为0
-     *  **/
-    openPageFullPath:function(title,pageSrc,flag) {
-        // alert(pageSrc.substring((pageSrc.indexOf('?') + 1)));
-        flag = flag == undefined || flag == null ? 0 : flag;
-
-        var  index = pageSrc.indexOf('?');
-        if(index > -1)
-        {
-            appcan.locStorage.setVal("tempData", pageSrc.substring((index + 1)));
-        }
-
-        pageSrc = pageSrc.substring(0,pageSrc.indexOf('.html') + 5 );
-        if(isPhone())
-        {
-            pageSrc = pageSrc.substring(0,pageSrc.lastIndexOf(".html")) + "_iph.html";
-            // alert(pageSrc);
-        }
-
-        // pageSrc = pageSrc.indexOf("http") == 0 ? pageSrc : IPConfig.isDebug ? IPConfig.IPDebug + "/phone/pages" + pageSrc.substring(pageSrc.indexOf("/")) : pageSrc;
-
-        if(getPlatform(3)){
-
-            uexWindow.open(title, '0', pageSrc, 2, '', '', flag,0);
-
-            /*  loading(true);
-              window.location.href = pageSrc;  //电脑调试用
-              alert(pageSrc);
-              appcan.openWinWithUrl(title,pageSrc); //打包用*/
-            /**
-             windName	String	是	窗口名字，可为空，不能为”root”，若已经打开过该名字的窗口，则直接跳转至该窗口。
-             dataType	Number	是	窗口载入的数据的类型，0：url方式载入；1：html内容方式载入
-             data	String	是	url或html数据，支持“wgtroot://” 协议头，此协议头用于某些将项目部署在服务器上 的appcan应用，在应用执行过程中加载本地网页用。当dataType为0时，url支持相对路径、 绝对路径。其中，当url以“wgtroot://” 协议开头时，支持从服务器网页中打开本地应用沙箱中相应widget目录下的网页文件。 例如：当前窗口加载的是服务器上的http://www.xxx.com/xxx.html 网页，如果在xxx.html页面中open一个窗口时，传入的data为“wgtroot://index.html”, 那么本次open执行时，引擎将会到本应用沙箱目录的widget路径下去寻找此页面， 例如Android上找到的路径会是：file:///android_assert/widget/index.html 当dataType为1时，把相应html的内容传进去（不建议）
-             animationID	Number	是	动画ID，详见术语表-WindowAnimationId 窗口动画Id
-             w	Number	是	窗口宽度，请传0
-             h	Number	是	窗口高度，请传0
-             flag	Number	是	窗口标记，默认传空为0，详见CONSTANT中其他标记的窗口属性WindowFlags
-             animDuration	Number	否	动画持续时长，单位为毫秒，默认为260毫秒
-             * **/
-            // uexWindow.open(windName,dataType,data,animID,w,h,flag,animDuration,extras);
-            /* uexWindow.open(title, '0', pageSrc, 0, '', '',0,0);
-             uexWindow.open({
-                 name:title,
-                 data:pageSrc,
-                 animID:0,
-                 flag:1024
-             });*/
-            /*uexWindow.openPopover({
-                name:title,
-                url:pageSrc,
-                x:400,
-                y:0,
-                bottomMargin:100
-            });*/
-            /*appcan.window.open({
-                name :title,
-                dataType : 0,
-                data : pageSrc,
-                aniId:2,
-                type:0,
-                // animDuration:1000
-            });*/
-        }
-        else
-        {
-            window.location.href = pageSrc;
-        }
-    },
-    /**打开页面 全路径
-     **打开页面 全路径
-     * @param title 页面标识，在移动平台有用
-     *@param pageSrc 页面路径
-     *@param flag number,//页面标记 flag=128时页面支持缩放,默认为0
-     *  **/
-    openPageFullPath2:function(pageSrc,flag) {
-        pageOperate.openPageFullPath(pageSrc, pageSrc + ".html?0" + JSON.stringify({}), flag);
-    },
-    /**打开页面
-     *@param pageSrc 页面文件名
-     *  *@param flag number,//页面标记 flag=128时页面支持缩放,默认为0
-     *  **/
-    openPage:function(pageSrc, flag) {
-        // alert("s2");?0{}
-        pageOperate.openPageFullPath(pageSrc,"../" + pageSrc + "/" + pageSrc + ".html", flag);
-    },
-    /**打开页面 并且传递数据
-     * @param title 页面标识，在移动平台有用
-     *@param pageSrc 页面路径 全路径
-     * *@param data 传递数据为字符串
-     *  *@param flag number,//页面标记 flag=128时页面支持缩放,默认为0
-     *  **/
-    openPageData:function(title,pageSrc,data, flag) {
-
-        // alert("openPageData: " + tag + " ff  " + appcan.locStorage.getVal("refresh"));
-
-        if(typeof(data) == 'object' || data.constructor == Array)
-        {
-            //0,表示是json,1表示是字符串
-            data = "0" + JSON.stringify(data);
-        }
-        else
-        {
-            data = "1" + data;
-        }
-
-        pageOperate.openPageFullPath(pageSrc,pageSrc + "?" + data,flag);
-    },
-    /**打开页面 并且传递数据
-     *@param pageSrc 页面名字
-     * *@param data 传递数据为字符串
-     *  *@param flag number,//页面标记 flag=128时页面支持缩放,默认为0
-     *  **/
-    openPageData2:function(pageSrc,data, flag){
-        // alert(data);
-        // alert(JSON.stringify(data));
-        if(typeof(data) == 'object' || data.constructor == Array)
-        {
-            //0,表示是json,1表示是字符串
-            data = "0" + JSON.stringify(data);
-        }
-        else
-        {
-            data = "1" + data;
-        }
-        // alert(data);
-        pageOperate.openPageFullPath(pageSrc,"../" + pageSrc + "/" + pageSrc + ".html?" + data, flag);
-    },
-    /**打开页面
-     *@param pageSrc 页面文件名
-     *@param flag number,//页面标记 flag=128时页面支持缩放,默认为0
-     *@param isClose boolean,//是否关闭当前页面，打开令一个页面
-     *  **/
-    openPageClosePre:function (pageSrc,flag,isClose) {
-        isClose = isClose == undefined ? false : isClose;
-        if(pageParamTemp.isClose == undefined && !isClose)
-        {
-            pageOperate.closePage();
-        }
-        else
-        {
-            pageOperate.closePage(true);
-            pageOperate.openPage(pageSrc, flag);
-        }
-
-    },
-
-    /**关闭页面
-     * @param isTimeout,// 是否延迟关闭，true延迟
+     * @param pageSrc 页面路径
+     * @param data 传递数据为字符串
      **/
-    closePage:function(isTimeout) {
+    openPopoverDataFullPath:function(title,pageUrl,data={},flag) {
 
-        if(getPlatform(3)){
-            // if(true){
-
-            if (pageOperate.config.isOpenedWeb){
-                browerOperate.closePageBrower();
-                return;
-            }
-
-            if(isTimeout != null && isTimeout != undefined)
-            {
-                // appcan.window.close(-1);
-                setTimeout(function () {
-                    /**animID	Number	否	为空时无动画，-1时代表Open时指定动画的方向动画
-                     animDuration	Number	否	动画持续时长，单位为毫秒，默认为260毫秒
-                     * **/
-                    // uexWindow.close(animID,animDuration);
-                    uexWindow.close();
-                    // uexWindow.close({
-                    //     animID:0,
-                    //     animDuration:0
-                    // });
-                    // appcan.window.close(0);
-                    // uexWindow.close();
-                },1000);
-
-            }
-            else
-            {
-
-                // uexWindow.onStateChange = function(state){
-                //     alert("ds");
-                //     // var arr = state?"压入后台":"回到前台";
-                //     // console.log(arr);
-                //     // if(!state){
-                //     // }
-                // }
-                // uexWindow.close();
-                // appcan.window.evaluatePopoverScript("guide","../guide/guide.html",);
-                // appcan.window.close(13);
-
-                // uexWindow.close({
-                //     animID:0,
-                //     animDuration:0
-                // });
-
-                // uexWindow.close(1);
-                uexWindow.close({
-                    animID:13
-                });
-
-                // setTimeout(function () {
-                //     alert("close");
-                //     uexWindow.reload();
-                // },1000);
-
-            }
-
-
-        }
-        else
-        {
-            window.history.back();
-        }
-    },
-    /**关闭页面
-     * @apram data,// 需要回传的数据
-     * @apram isTimeout,// 是否延迟关闭，true延迟
-     **/
-    closePageData:function(data,isTimeout) {
-        if(data.length == undefined)
+        if(typeof(data) == 'object' || data.constructor == Array)
         {
             //0,表示是json,1表示是字符串
             data = "0" + JSON.stringify(data);
@@ -1040,100 +1174,17 @@ var pageOperate = {
         {
             data = "1" + data;
         }
-        appcan.locStorage.setVal("tempData",data);
-        pageOperate.closePage(isTimeout);
-    },
 
-    /**通过本地跳转传参时，返回数据
-     * **/
-    getHrefData:function() {
-        // alert(encodeURI('http://baidu.com?hello=您好&word=文档'));
-        // console.log("href 2 : " + decodeURI(window.location.href));
-        // console.log("href 3 : " + window.location.search);
-        // alert(decodeURI(window.location.search.substring(1)));
-
-        /*var data = decodeURI(window.location.search.substring(1));
-
-    // alert(data);
-        var isJson = data[0];
-        data = data.substring(1);
-
-        ///0,表示是json,1表示是字符串
-        if(isJson == 0)
-        {
-            data = JSON.parse(data);
-            // alert("json");
-            // alert(data);
-        }
-        else if(isJson == 2)
-        {
-            data = appcan.locStorage.getVal("tempData");
-            isJson = data[0];
-            data = data.substring(1);
-            ///0,表示是json,1表示是字符串
-            if(isJson == 0)
-            {
-                data = JSON.parse(data);
-            }
-        }*/
-
-        var data = appcan.locStorage.getVal("tempData");
-
-        if(data != null && data != 'null')
-        {
-            var isJson = data[0];
-            data = data.substring(1);
-            ///0,表示是json,1表示是字符串
-            if(isJson == 0)
-            {
-                data = JSON.parse(data);
-            }
-        }
-        else
-        {
-            data = {};
-        }
-
-
-        return data;
-
-    },
-    /**页面传递数据转化json
-     * **/
-    getHrefDataJson:function() {
-        var param = pageOperate.getHrefData();
-
-        if(param != '' && param != null && param != undefined)
-        {
-            param = JSON.parse(param);
-            // alert(param);
-        }
-        else
-        {
-            param = {
-                id:'',//任务id
-                title:'新店选址',//标题栏信息
-            }
-            // alert("d");
-        }
-
-        return param;
+        PopoverOperate.openPopoverFullPath(title,pageUrl + "?" + data, flag);
     }
-
-}
-
-setTimeout(function () {
-    pageParamTemp = pageOperate.getHrefData();
-    pageParamTemp = pageParamTemp == null || pageParamTemp == 'null' ? {} : pageParamTemp;
-},0);
-
-
+};
 
 /**
  * 图片操作
  * **/
-var imgOperate = {
-    /**选择图片 （原生）
+var ImgOperate = {
+    /**
+     * 选择图片 （原生）
      * @param 回调函数
      *从本地相册中选择图片
      * min	Number	否	最小选择数量 ,传0表示无限制	1
@@ -1144,7 +1195,7 @@ var imgOperate = {
      style	Number	否	如果不传或者传0 为默认样式，传1为新样式(仿微信)	0
      */
     pickImg:function(func) {
-        verifyPlatform(function () {
+        PlatformOperate.verifyPlatform(function () {
             var optionsImg = {
                 min:0,
                 max:1,
@@ -1154,17 +1205,18 @@ var imgOperate = {
                 style:0
             };
             var json = JSON.stringify(optionsImg);
-            if(getPlatform(2))
+            if(PlatformOperate.getPlatform(2))
             {
                 //设置iPad是否启用pop窗口 为0时表示禁用pop窗口,非0时表示启用pop窗口
                 uexImage.setIpadPopEnable(0);
             }
             uexImage.openPicker(optionsImg,function (err,info) {
-                /**info数据结构：
+                /**
+                 * info数据结构：
                  info = {
-  detailedImageInfo:,//Array	否 ,仅openPicker有设置detailedInfo为true时才有此参数	导出的图片的信息uexImageInfo结构构成的数组
-  data:,//Array	否	导出的图片地址构成的数组
-}
+                             detailedImageInfo:,//Array	否 ,仅openPicker有设置detailedInfo为true时才有此参数	导出的图片的信息uexImageInfo结构构成的数组
+                             ata:,//Array	否	导出的图片地址构成的数组
+                      }
                  detailedImageInfo	Array	否 ,仅openPicker有设置detailedInfo为true时才有此参数	导出的图片的信息uexImageInfo结构构成的数组
                  data	Array	否	导出的图片地址构成的数组
                  * **/
@@ -1182,7 +1234,8 @@ var imgOperate = {
         });
 
     },
-    /**打开图片浏览器
+    /**
+     * 打开图片浏览器
      * @param data array,//图片数组
      * @param callback function,//回调函数
      * data = [
@@ -1192,7 +1245,8 @@ var imgOperate = {
 
      * **/
     openBrowserImg:function (data, callback) {
-        /**参数名称	参数类型	是否必选	说明	默认值
+        /**
+         * 参数名称	参数类型	是否必选	说明	默认值
          displayActionButton	Boolean	否	显示分享按钮	false
          displayNavArrows	Boolean	否	显示切换箭头(仅iOS支持此参数)	false
          enableGrid	Boolean	否	允许九宫格视图	true
@@ -1218,7 +1272,8 @@ var imgOperate = {
         //     "http://img01.taopic.com/150715/240497-150G50J45235.jpg"
         // ];
 
-        /**data也可以是这个
+        /**
+         * data也可以是这个
          * data = {
 
          src:,//(String,必选)图片资源路径,支持 wgt:// wgts:// res:// file:// http:// https://
@@ -1228,7 +1283,7 @@ var imgOperate = {
 
         }**/
 
-        if(getPlatform(2))
+        if(PlatformOperate.getPlatform(2))
         {
             //设置iPad是否启用pop窗口 为0时表示禁用pop窗口,非0时表示启用pop窗口
             uexImage.setIpadPopEnable(0);
@@ -1305,7 +1360,8 @@ var imgOperate = {
         });
 
     },
-    /**保存图片到图库 不支持网络图片
+    /**
+     * 保存图片到图库 不支持网络图片
      * @param data array 或 string ,//需要保存图片的路径 如:data = ["路径1","路径2".......]或"路径1";
      * @param index number,//data数组的地址
      * @param callbackSucess function,//保存成功回调函数
@@ -1321,14 +1377,14 @@ var imgOperate = {
         {
             data = [filePath];
         }
-        //localPath.localPath:图片路径;
+
         var localSrc = {
             // localPath:data[index]
             localPath:filePath == undefined ?
                 data[index].files == undefined ? "wgts://download/" + data[index].substring(data[index].lastIndexOf('/') + 1)
                     : data[index].files : data[index]
         };
-        // alert(JSON.stringify(localSrc));
+
         uexImage.saveToPhotoAlbum(JSON.stringify(localSrc),function(err,errStr){
             // error	Number	是	为0表示储存成功,非0表示储存失败
             // errorInfo	String	否	储存失败的错误信息.储存成功时,errorInfo为null
@@ -1344,7 +1400,7 @@ var imgOperate = {
                 else
                 {
                     index++;
-                    imgOperate.saveToPhotoAlbum(data,index,callbackSucess,callbackErr);
+                    ImgOperate.saveToPhotoAlbum(data,index,callbackSucess,callbackErr);
                 }
             }
             else
@@ -1357,16 +1413,196 @@ var imgOperate = {
             }
         });
     },
-    /**保存图片到图库 不支持网络图片
+    /**
+     * 保存图片到图库 不支持网络图片
      * @param data array,//需要保存图片的路径 data = ["路径1","路径2".......];
      * @param index number,//data数组的地址
      * @param callbackSucess function,//保存成功回调函数
      * @param callbackErr function,//保存失败回调函数
      * **/
     saveToSysPhotoAlbum:function (data,callbackSucess,callbackErr,filePath) {
-        imgOperate.saveToPhotoAlbum(data,0,callbackSucess,callbackErr,filePath);
+        ImgOperate.saveToPhotoAlbum(data,0,callbackSucess,callbackErr,filePath);
+    },
+    /**
+     * 拍照，（原生）
+     * @param func 拍照成功回调函数
+     * opId	Number类型	必选	操作ID,此函数中不起作用,可忽略
+     dataType	Number类型	必选	数据类型详见CONSTANT中Callback dataType数据类型
+     data	String类型	必选	拍照成功后图片的保存路径
+     **/
+    takePicture:function(func) {
+
+        PlatformOperate.verifyPlatform(function () {
+            //调用系统相机
+            uexCamera.open(0,100,function (data) {
+                setTimeout(function(){
+                    func(data);
+                },0);
+                setTimeout(function(){
+                    ImgOperate.saveToSysPhotoAlbum([{files:data}]);
+                },0);
+
+            });
+
+            /* //打开自定义相机
+             uexCamera.openInternal(0,100,function (data) {
+                 // filePathPic = data;
+                 func(data);
+             });*/
+
+        });
+
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * toast窗口的弹出和关闭（提示窗口）
+ * @param msg：提示的内容
+ * @param data ,//提示显示时长 data = {
+
+   duration:1000,//显示时长（单位：ms）
+
+        position:5,位置显示在屏幕中的位置
+         1: left_top 左上
+         2: top 上中
+         3: right_top 右上
+         4: left 左中
+         5: middle 中间
+         6: right 右中
+         7: bottom_left 下左
+         8: bottom 下中
+         9: right_bottom 右下
+
+        type:0，是否有经度条
+         0: 没有进度条
+         1: 有进度条
+ * }
+ **/
+function toast(msg,data) {
+    var param = {
+        msg:msg,
+        duration:2000,
+        position:5,
+        type:0
+    };
+
+    if(data != null && data != undefined)
+    {
+        if(data.duration != null && data.duration != undefined)
+        {
+            param.duration = data.duration;
+        }
+        if(data.position != null && data.position != undefined)
+        {
+            param.position = data.position;
+        }
+        if(data.type != null && data.type != undefined)
+        {
+            param.type = data.type;
+        }
+
+    }
+    /** msg：提示的内容
+     duration：toast窗口显示的时间，单位毫秒
+     position：位置 5 为中间
+     type：0 没有菊花圈，1 有菊花圈
+     **/
+    return appcan.window.openToast(param);
+    // appcan.window.openToast(msg,length,5,0);
+
+}
+
+/**
+ * 设置video标签是否可以内嵌播放
+ * @param bool boolean;//true:允许内嵌播放，false:禁止内嵌播放;默认设置true
+ */
+function setVideoInlinePlayEnable(bool) {
+    PlatformOperate.verifyPlatform(function () {
+        bool = bool == undefined ? true : bool;
+        uexWindow.setInlineMediaPlaybackEnable(bool);
+    });
+}
+window.onload = function () {
+    setTimeout(function () {
+        setVideoInlinePlayEnable();
+    },1000);
+};
+
+/**
+ * 加载条 startBool 为true开始，false关闭
+ * @param startBool bool; 为true开始，false关闭,默认为启动加载条
+ * @param tag int;undefine：加载条，锁屏；1：全局对话框，不锁屏,可同时操作其他的;
+ * @param msg string;undefine：全局对话框，不锁屏,可同时操作其他的,显示默认信息；否则显示自定义信息
+ * **/
+function loadingCircle(startBool,tag,msg) {
+    setTimeout(function () {
+        verifyPlatform2(function () {
+            if(getPlatform(1) || getPlatform(2))
+            {
+                if(startBool ){
+                    if(tag == undefined)
+                    {
+                        uexLoadingView.openCircleLoading();
+
+                    }
+                    else if(tag == 1)
+                    {
+                        msg == undefined ? '正在加载,请稍候...' : msg;
+                        uexWindow.createProgressDialog({
+                            title:'',
+                            msg:msg,
+                            canCancel:0
+                        });
+                    }
+                }
+                else
+                {
+                    if(tag == undefined)
+                    {
+                        uexLoadingView.close();
+                    }
+                    else if(tag == 1)
+                    {
+                        uexWindow.destroyProgressDialog();
+                    }
+                }
+            }
+        },null);
+    },0);
+
+    // var params = {
+    //     "x":20,
+    //     "y":20,
+    //     "w":300,
+    //     "h":40,
+    //     "style":
+    //         {
+    //             "styleId":0,
+    //             "pointNum":4,
+    //             "pointColor":["#ff4444", "#ffbb33", "#99cc00", "#33b5e5"]
+    //         }
+    // };
+    // uexLoadingView.open(JSON.stringify(params));
+
+}
+
+var pageParamTemp = null;
+setTimeout(function () {
+    pageParamTemp = pageOperate.getHrefData();
+    pageParamTemp = pageParamTemp == null || pageParamTemp == 'null' ? {} : pageParamTemp;
+},0);
 
 /**
  * 扫描二维码和条形码,
@@ -1403,60 +1639,6 @@ function scaner(func) {
 
         uexScanner.open();
     });
-}
-
-var filePathPic = null;
-
-/**
- * 拍照，（原生）
- * @param func 拍照成功回调函数
- * opId Number类型    必选  操作ID,此函数中不起作用,可忽略
- dataType   Number类型    必选  数据类型详见CONSTANT中Callback dataType数据类型
- data   String类型    必选  拍照成功后图片的保存路径
- **/
-function takePicture2(func) {
-    // takePicture(function(opCode, dataType, data)
-    //     {
-    //         func(data);
-    //     });
-
-    takePicture(function(data)
-    {
-        func(data);
-    });
-
-}
-
-/**
- * 拍照，（原生）
- * @param func 拍照成功回调函数
- * opId	Number类型	必选	操作ID,此函数中不起作用,可忽略
- dataType	Number类型	必选	数据类型详见CONSTANT中Callback dataType数据类型
- data	String类型	必选	拍照成功后图片的保存路径
- **/
-function takePicture(func) {
-
-    verifyPlatform(function () {
-        //调用系统相机
-        uexCamera.open(0,100,function (data) {
-            filePathPic = data;
-            setTimeout(function(){
-                func(data);
-            },0);
-            setTimeout(function(){
-                imgOperate.saveToSysPhotoAlbum([{files:data}]);
-            },0);
-
-        });
-
-        // //打开自定义相机
-        // uexCamera.openInternal(0,100,function (data) {
-        //     // filePathPic = data;
-        //     func(data);
-        // });
-
-    });
-
 }
 
 var filePathAuto = null;
@@ -1542,136 +1724,6 @@ function playAuto(ctrl,filePath) {
     });
 }
 
-/**
- * 设备操作
- * **/
-var deviceOperate = {
-    /**配置信息
-     * @param callbackFuncW function,//横屏回调函数
-     * @param callbackFuncH function,//竖屏回调函数
-     * @param callbackFuncWH function,//横竖屏切换时回调函数
-     * @param orientation number,//屏幕方向: 1:竖屏,home键在屏幕下方; 2:横屏,home键在屏幕右边;4:竖屏,home键在屏幕上方; 8:横屏,home键在屏幕左边;
-     * **/
-    config:{
-        isExe:true,//屏幕切换执行
-        callbackFuncW:null,
-        callbackFuncH:null,
-        callbackFuncWH:null,
-        orientation:null,
-        onloadFunc:null,//所有window.uexOnload都会回调的函数
-    },
-    /**屏幕变化监听事件
-     * @param callbackFuncW function,//横屏回调函数
-     * @param callbackFuncH function,//竖屏回调函数
-     * @param callbackFuncWH function,//横竖屏切换时回调函数
-     * **/
-    orientationChange:function (callbackFuncW,callbackFuncH, callbackFuncWH) {
-        appcan.ready(function() {
-            deviceOperate.orientationCge(callbackFuncW,callbackFuncH, callbackFuncWH);
-        });
-    },
-    /**初始化横竖屏切换回调函数
-     * **/
-    orientationCge:function (callbackFuncW,callbackFuncH, callbackFuncWH) {
-        // alert("加载");
-        // window.uexOnload = function(type) {
-        /**mode	Number	是	屏幕方向,1-正竖屏;2-左横屏;4倒竖屏;8右横屏**/
-        uexDevice.onOrientationChange = function(mode){
-            // alert("mode:" + mode + "\nheight:" + screen.height + "\nwidth:" + screen.width);
-
-            // setTimeout(function () {
-            //     document.width = screen.width;
-            //     document.height = screen.height;
-            // },0);
-
-            if(deviceOperate.config.isExe)
-            {
-                deviceOperate.config.isExe = false;
-
-                deviceOperate.config.callbackFuncWH = callbackFuncWH != null && callbackFuncWH != undefined ? callbackFuncWH : deviceOperate.config.callbackFuncWH;
-                deviceOperate.config.callbackFuncW = callbackFuncW != null && callbackFuncW != undefined ? callbackFuncW : deviceOperate.config.callbackFuncW;
-                deviceOperate.config.callbackFuncH = callbackFuncH != null && callbackFuncH != undefined ? callbackFuncH : deviceOperate.config.callbackFuncH;
-
-                if(deviceOperate.config.callbackFuncWH != null && deviceOperate.config.callbackFuncWH != undefined)
-                {
-                    deviceOperate.config.callbackFuncWH(mode);
-                }
-
-                if(mode == 1 || mode == 4)
-                {
-                    // alert("正竖屏");
-                    if(deviceOperate.config.callbackFuncW != null && deviceOperate.config.callbackFuncW != undefined)
-                    {
-                        deviceOperate.config.callbackFuncW();
-                    }
-                }
-                else if(mode == 2 || mode == 8)
-                {
-                    // alert("左横屏");
-                    if(deviceOperate.config.callbackFuncH != null && deviceOperate.config.callbackFuncH != undefined)
-                    {
-                        deviceOperate.config.callbackFuncH();
-                    }
-                }
-
-                setTimeout(function () {
-                    deviceOperate.config.isExe = true;
-                },500);
-
-            }
-
-
-        };
-        // };
-    },
-    /**设置屏幕方向
-     * @param orientation number;// 1:竖屏,home键在屏幕下方; 2:横屏,home键在屏幕右边;4:竖屏,home键在屏幕上方; 8:横屏,home键在屏幕左边; 15:随系统设置自动转屏.
-     * **/
-    setOrientation:function (orientation) {
-        uexWindow.setOrientation(orientation);
-    },
-    /**获取当前屏幕方向
-     * return number ;// 1:竖屏,home键在屏幕下方; 2:横屏,home键在屏幕右边;4:竖屏,home键在屏幕上方; 8:横屏,home键在屏幕左边; 15:随系统设置自动转屏.
-     * **/
-    getOrientation:function () {
-        deviceOperate.config.orientation = window.orientation == 0 ? 1 : window.orientation == 90 ? 2 : window.orientation == 180 ? 4 : 8;
-        return deviceOperate.config.orientation;
-    },
-    /**是否链接网络(internet)
-     * **/
-    getInternetInfo:function () {
-        var internetInfo = uexDevice.getInfo(13);
-        if(internetInfo == -1)
-        {
-            toast("无法连接网络");
-        }
-        return internetInfo;
-    },
-    /**当前窗口重载
-     * **/
-    reloadCurrentWindow:function () {
-        uexWindow.reload();
-    },
-    /**app重启或页面重载
-     * **/
-    reStart:function () {
-        verifyPlatform2(function () {
-            if(isPush)
-            {
-                uexWidgetOne.restart();
-            }
-            else
-            {
-                deviceOperate.reloadCurrentWindow();
-            }
-
-        },function () {
-            deviceOperate.reloadCurrentWindow();
-        });
-    }
-};
-
-// deviceOperate.orientationChange();
 /**
  * 下拉刷新,上拉加载 (原生)
  * @param funcTop function,// 下拉刷新回调函数
@@ -1951,7 +2003,6 @@ function upOrDownrefresh(funcTop, funcBottom,callbackFuncPre,callbackFuncBack, i
       }*/
 
 }
-
 
 /**
  * 下拉刷新,上拉加载 (原生)
@@ -2462,7 +2513,6 @@ function upOrDownrefreshJS(funcTop, funcBottom) {
  * @param tag，//标识，0，返回当前的0时0分0秒时间戳，1返回当前的时间戳 ，2按格式返回日期,3获取本月的天数
  * @param format,//返回数据的格式
  * **/
-// alert(moment((new Date()).getTime()).format("MM月DD日"));
 function dateCtr(time,tag,format) {
     var date = new Date();
     // alert("time: " + time + "\ntag:" + tag + "\nformat:" + format);
@@ -2515,37 +2565,9 @@ function dateCtrGetCurrentTime(format) {
     return dateCtr(date.getTime(),2,format);
 }
 
+
 /**
- * 得到账户信息
- * @param accountInfo 为null获取账户信息,否则设置账户信息
- * **/
-function accountInfo(accountInfo) {
-    if(accountInfo == undefined){
-
-        var data = appcan.locStorage.getVal("accountInfo");
-        if(data == '' || data == null || data == 'null')
-        {
-            userInfoData = null;
-        }
-        else
-        {
-            userInfoData = JSON.parse(data);
-        }
-
-        return userInfoData;
-
-    }
-    else
-    {
-        accountInfo = typeof(accountInfo) == 'object' ? JSON.stringify(accountInfo) : accountInfo;
-        appcan.locStorage.setVal("accountInfo",accountInfo);
-        // alert(appcan.locStorage.getVal("accountInfo"));
-    }
-}
-
-
-
-/**file代表系统路径例如file://sdcard
+ * file代表系统路径例如file://sdcard
 
  wgt://代表应用空间，即应用下载文件或保存文件的地方。Android上对应file://sdcard/widgetone/app/[widgetid]/路径下
 
@@ -2573,7 +2595,8 @@ var unzipPath = function () {
  * 文件操作 （原生）
  * **/
 var fileOperate = {
-    /**打开文件浏览器（原生）
+    /**
+     * 打开文件浏览器（原生）
      * error	Number	是否发生错误. 未发生错误时error为0, 发生错误或者用户取消选择时error为非0值
      path	String	用户选择的文件的路径;若用户取消选择,则path为null
      * @param func（error，path） 选择文件成功后的回调函数
@@ -2585,16 +2608,17 @@ var fileOperate = {
         });
 
     },
-    /**搜索指定文件夹下的文件 （原生）
+    /**
+     * 搜索指定文件夹下的文件 （原生）
      * @param 搜索文件夹条件参数,为null采用默认设置
      * @param func（err,result） 搜索成功回调函数
      * error	Number	为0时表示成功,非0时表示失败
      result	Array	搜索操作结果,所有符合条件的路径构成的数组;若没有路径符合搜索条件,则为一个空数组
      * **/
     searchFiles:function (param,func) {
-
         verifyPlatform(function () {
-            /*path	是	String	目标文件夹路径
+            /*
+            path	是	String	目标文件夹路径
              flag	否	Number	搜索设置 见下 不传默认为0
              keywords	否	Array	要搜索的文件名关键字 不传时搜索所有
              suffixes	否	Array	要搜索的文件后缀名 不传时搜索所有
@@ -2610,7 +2634,8 @@ var fileOperate = {
              suffixes:[]
              };
              * */
-// alert(unzipPath());
+
+            // alert(unzipPath());
             if(param == null){
                 param = {
                     path:unzipPath(),
@@ -2620,10 +2645,9 @@ var fileOperate = {
 
             uexFileMgr.search(JSON.stringify(param),func)
         });
-
-
     },
-    /**文档阅读Document阅读器,是用来阅读Office文件的,包括PPT幻灯片,Excel表格,.doc或.docx文档,以及txt,pdf格式文件的. （原生）
+    /**
+     * 文档阅读Document阅读器,是用来阅读Office文件的,包括PPT幻灯片,Excel表格,.doc或.docx文档,以及txt,pdf格式文件的. （原生）
      * @param documentPath 路径
      * @param callbackFunc //若是网络地址则可以传入下载完成的回调函数，反之不需要、传了也无效
      * **/
@@ -2648,7 +2672,8 @@ var fileOperate = {
 
         });
     },
-    /**解压文件（原生）
+    /**
+     * 解压文件（原生）
      * error	Number	压缩结果，0-成功，非0-失败解压
      * @param func（error） 选择文件成功后的回调函数
      * @param srcPath	String	是	要解压缩的文件路径,路径协议详见CONSTANT中PathTypes
@@ -2675,7 +2700,8 @@ var fileOperate = {
             }
         });
     },
-    /**uexFileMgr.getFileSizeByPath(params,cb) //获取文件大小
+    /**
+     * uexFileMgr.getFileSizeByPath(params,cb) //获取文件大小
      *@param path string， 文件路径
      * @param func function ， 成功回调函数
      * error	Number	为0表示操作成功,非0时表示操作失败
@@ -2703,14 +2729,16 @@ var fileOperate = {
         }
         uexFileMgr.getFileSizeByPath(params,func)
     },
-    /** deleteFileByPath(path) //根据路径删除文件
-     *@param
+    /**
+     * deleteFileByPath(path) //根据路径删除文件
+     * @param path string,//文件路径
      */
     deleteFileByPath:function (path) {
         uexFileMgr.deleteFileByPath(path);
     },
-    /** deleteFolderByPath(path) //根据路径删除文件夹及子文件
-     *
+    /**
+     * deleteFolderByPath(path) //根据路径删除文件夹及子文件
+     * @param pathFolder string,//文件夹路径
      */
     deletefolderByPath:function (pathFolder) {
         // uexFileMgr.deleteFileByPath(path);
@@ -2748,7 +2776,8 @@ var fileOperate = {
         }
 
     },
-    /**文件是否存在
+    /**
+     * 文件是否存在
      * @param filePath string,//文件路径
      * return true;//true存在，false不存在
      * **/
@@ -2770,7 +2799,7 @@ var fileOperate = {
     }
  * **/
 function getLocationJS(func) {
-    /*if (navigator.geolocation) {alert("定位");
+    if (navigator.geolocation) {alert("定位");
         navigator.geolocation.getCurrentPosition((position) => {alert(JSON.stringify(position));
             func(position);
         }, (error) => {
@@ -2792,7 +2821,7 @@ function getLocationJS(func) {
     }
     else {
         alert("不支持定位");
-    }*/
+    }
 }
 
 /**
@@ -2801,7 +2830,8 @@ function getLocationJS(func) {
  * **/
 var locationOperate ={
     locationData:getJsonData("location"),
-    /** 得到定位
+    /**
+     * 得到定位
      * * @param funcChange function,//地理位置变化时回调 funcChange(json),//json = json = {
                                 lat:'纬度',
                                 log:‘经度’
@@ -3225,10 +3255,10 @@ var operateVideo = {
     /**播放视频
      * @param func ;各种状态的监听回调方法;若为1时，
      * func = {
- * onPlayerFinish :function,//onPlayerFinish //播放完成后的监听方法
- * onPlayerStatusChange：function，onPlayerStatusChange //播放器状态改变的监听方法
- * onPlayerEndTime：function，onPlayerEndTime //视频播放到endTime 的监听
- * onPlayerClose：function，onPlayerClose //播放器被关闭时的监听方法
+     * onPlayerFinish :function,//onPlayerFinish //播放完成后的监听方法
+     * onPlayerStatusChange：function，onPlayerStatusChange //播放器状态改变的监听方法
+     * onPlayerEndTime：function，onPlayerEndTime //视频播放到endTime 的监听
+     * onPlayerClose：function，onPlayerClose //播放器被关闭时的监听方法
      * **/
     playVideo:function (path,func) {
 
@@ -5221,7 +5251,7 @@ function openDocument(path,callbackFunc) {
         if(verfyStr.indexOf('.png') > 0 || verfyStr.indexOf('.jpg') > 0)
         {
             // alert(path[0]);
-            imgOperate.openBrowserImg(path,callbackFunc);
+            ImgOperate.openBrowserImg(path,callbackFunc);
         }
         else if(verfyStr.indexOf('.mp4') > 0)
         {
@@ -6999,7 +7029,8 @@ function weekConert(weekInt) {
     }
 }
 
-/**select下拉(待测试)
+/**
+ * select下拉(待测试)
  引用：iosSelect.css、iosSelect.js、iscroll.js
  参数：new IosSelect(level, data, options)
 
@@ -7167,7 +7198,7 @@ function fixedChange(tagIdList) {
     for(var i = 0; i < tagIdList.length; i++)
     {
         var ele = document.getElementById(tagIdList[i]);
-        // scrollPositonOperate.scrollTo();
+        // ScrollPositonOperate.scrollTo();
         // ele.style.position = ele.style.position == "absolute" ? "fixed" : "absolute";
         if(ele.style.position != "absolute")
         {
@@ -7184,7 +7215,7 @@ function fixedChange(tagIdList) {
     // 距离顶部距离
     headTop("#ScrollContent");
 
-    // // scrollPositonOperate.scrollTo();
+    // // ScrollPositonOperate.scrollTo();
     // document.getElementById("ScrollContent").style.position = "absolute";
     // // scr.style.height = screen.height + "px";
     // document.getElementById("Header").style.position = "absolute";
@@ -7194,186 +7225,18 @@ function fixedChange(tagIdList) {
 
 }
 
-/**
- * 浏览器操作
- * **/
-var browerOperate = {
-    /**浏览器配置数据
-     * x Number 否 View左上顶点x坐标，默认为0
-     y Number 否 View左上顶点y坐标，默认为0
-     width Number 否 View左上顶点y坐标，默认撑满屏幕
-     height Number 否 View左上顶点y坐标，默认撑满屏幕
-     * **/
-    config:{
-        x:null,
-        y:null,
-        width:null,
-        height:null
-    },
-    /**打开外部网页
-     * @param url string,//打开网页地址
-     * x Number 否 View左上顶点x坐标，默认为0
-     y Number 否 View左上顶点y坐标，默认为0
-     width Number 否 View左上顶点y坐标，默认撑满屏幕
-     height Number 否 View左上顶点y坐标，默认撑满屏幕
-     url String 否 需要加载的url
-     * **/
-    openPageBrower:function (url,y,x,height,width) {
-        verifyPlatform(function () {
-            // deviceOperate.setOrientation(deviceOperate.getOrientation());
-            deviceOperate.setOrientation(2);
-            // toast("deviceOperate.getOrientation():" + deviceOperate.getOrientation());
-
-            var interval = setInterval(function () {
-
-                if(deviceOperate.getOrientation() == 2)
-                {
-                    clearInterval(interval);
-                    /**各字段含义如下:
-
-
-                     字段名称
-
-                     类型
-
-                     是否必选
-
-                     说明
-
-
-                     debug Boolean 否 是否开启调试
-                     userAgent String 否 传此参数会添加到原有agent
-
-                     * **/
-                    var params = {
-                        debug:false,
-                    };
-                    uexWebBrowser.init(params);
-
-                    // var href = "https://e.honey-lovely.com/honey-lovely/jmkh/new2014/1215clgksuqiu%20(LMS)/res/index.html";
-                    // var param = {
-                    //     "basicData":{
-                    //         "index":1,
-                    //         "id":1000,
-                    //         "containerID":998,
-                    //         "x": 0,
-                    //         "y": 64,
-                    //         "w":320,
-                    //         "h":560
-                    //     },
-                    //     "detailedData":{
-                    //         "webUrl" :href
-                    //     }
-                    // };
-                    // uexWebView.open(param);
-
-                    /**各字段含义如下:
-
-
-                     字段名称
-
-                     类型
-
-                     是否必选
-
-                     说明
-
-
-                     x Number 否 View左上顶点x坐标，默认为0
-                     y Number 否 View左上顶点y坐标，默认为0
-                     width Number 否 View左上顶点y坐标，默认撑满屏幕
-                     height Number 否 View左上顶点y坐标，默认撑满屏幕
-                     url String 否 需要加载的url
-
-                     * **/
-                    var params = {
-                        // width:1080,
-                        // height:600,
-                        // x:600,
-                        // y:20,
-                        // url:"http://www.appcan.cn"
-                    };
-
-                    /*url != undefined && url != null ? params["url"] = url: '';
-                    x != undefined && x != null ? (params["x"] = x, browerOperate.config.x = x) : browerOperate.config.x != null ? params["x"] = browerOperate.config.x : '';
-                    y != undefined && y != null ? (params["y"] = y, browerOperate.config.y = y) : browerOperate.config.y != null ? params["y"] = browerOperate.config.y : '';
-                    width != undefined && width != null ? (params["width"] = width, browerOperate.config.width = width) : browerOperate.config.width != null ? params["width"] = browerOperate.config.width : '';
-                    height != undefined && height != null ? (params["height"] = height, browerOperate.config.height = height)
-                        : browerOperate.config.height != null ? params["height"] = browerOperate.config.height
-                        : getPlatform(2) && y != undefined && y != null ? (params["height"] = screen.height - y, browerOperate.config.height = screen.height - y)
-                            : '';*/
-
-                    url != undefined && url != null ? params["url"] = url: '';
-                    x != undefined && x != null ? params["x"] = x : '';
-                    y != undefined && y != null ? params["y"] = y : '';
-                    width != undefined && width != null ? params["width"] = width : '';
-                    // height != undefined && height != null ? params["height"] = height
-                    //     : ((deviceOperate.config.orientation == 2 || deviceOperate.config.orientation == 8)
-                    // && y != undefined && y != null) ? params["height"] = uexWindow.getHeight() - y
-                    //     : '';
-                    height != undefined && height != null ? params["height"] = height
-                        : (y != undefined && y != null) ? params["height"] = uexWindow.getHeight() - y
-                        : '';
-
-                    pageOperate.config.isOpenedWeb = true;
-                    uexWebBrowser.open(params);
-                }
-
-
-            },50);
-
-        });
-
-    },
-    /**关闭外部网页
-     * **/
-    closePageBrower:function(){
-        pageOperate.config.isOpenedWeb = false;
-        deviceOperate.setOrientation(1);
-        uexWebBrowser.reload();
-        setTimeout(function () {
-            uexWebBrowser.close();
-            deviceOperate.setOrientation(15);
-        },200);
-
-    },
-    /**获取标题
-     * callbackFunc function ;//回调函数,回传一个标题字段（string）;不传或传空（null）;return string,//标题
-     * **/
-    getPageTitle:function (callbackFunc) {
-        verifyPlatform(function () {
-            if(callbackFunc != undefined && callbackFunc != null)
-            {
-                var interval = setInterval(function () {
-                    var title = uexWebBrowser.getTitle();
-                    if(title != '')
-                    {
-                        clearInterval(interval);
-                        callbackFunc(title);
-                    }
-                },100);
-            }
-            else
-            {
-                return uexWebBrowser.getTitle();
-            }
-        });
-
-    }
-};
-
 /***
  * 获取任务类型名
  * @param tag string;//任务类型名的编码
  * */
 function getTaskTypeTitle(tag){
-    /*map.put("1", "巡店任务");
-                map.put("2", "出差任务");
-                map.put("3", "流程任务");
-                map.put("4", "回访任务");
-                map.put("5", "工作汇报");
-                map.put("6", "临时任务");4
-                */
+    /** map.put("1", "巡店任务");
+     map.put("2", "出差任务");
+     map.put("3", "流程任务");
+     map.put("4", "回访任务");
+     map.put("5", "工作汇报");
+     map.put("6", "临时任务");4
+     */
     switch (tag)
     {
         case '1':
@@ -7754,8 +7617,6 @@ var strReplaceOperate = {
     }
 }
 
-accountInfo();
-
 /**
  * 是否是门投资中心
  * @param departmentId int,//部门id
@@ -7774,7 +7635,8 @@ function isDoorInvest(departmentId) {
     return bool;
 }
 
-/**跨页面通道并且传送数据
+/**
+ * 跨页面通道并且传送数据
  * **/
 var channelAcrossOperate = {
     /**配置
@@ -7888,7 +7750,8 @@ var slidingWindowOperate = {
 }
 
 /**
- * 数字转化成汉子大写文字
+ * 数字转化成汉子大写汉字
+ * @prama money int,//数字
  * **/
 function convertCurrency(money) {
     // 汉字的数字
@@ -8001,119 +7864,4 @@ function convertCurrency(money) {
     }
 
     return chineseStr
-}
-
-var earningCalculateClass = {
-    resultObj:{
-        TAB:0,//0出库额，1出库毛利
-        resultRechargeCurMon:jsonOperate.getJsonData("resultOutboundCurMon"),//本月出库订单
-        isSave:false,//是否执行获取缓存
-        resultTime:dateCtr2(0),//当天0点0分0秒
-        month:timeFormatConvert(dateCtr2(0),"YYYY-MM"),//获取本月的月份"YYYY-MM"
-        outboundAmountObj:{
-            retListData2:[],    //返回数据集
-
-            requestData:{
-                user_id:userInfoData.id,
-                // user_id:'320',
-                profitpageindex: 1,
-                outwarehouseindex: 1,
-                pageSize: 10000,
-                date:null//日期"YYYY-MM"
-            },//请求参数对象
-
-            monthCount:null,//本月订单数量
-            totalMoney:null,//总金额
-            containerMoney:null,//货柜金额
-            instrumentMoney:null,//仪器金额
-            goodsFirstMoney:null,//普通商品-首批金额
-            goodsSupplementMoney:null,// 普通商品-补货金额
-            formula:'现金出库金额=出库总额-调换货',
-            isToPosition:true,
-        },
-        outboundProfitObj:{
-            retListData2:[],    //返回数据集
-
-            requestData:{
-                user_id:userInfoData.id,
-                // user_id:'320',
-                profitpageindex: 1,
-                outwarehouseindex: 1,
-                pageSize: 10000,
-                date:null//日期"YYYY-MM"
-            },//请求参数对象
-
-            monthCount:null,//本月订单数量
-            totalMoney:null,//总金额
-            containerMoney:null,//货柜金额
-            instrumentMoney:null,//仪器金额
-            goodsFirstMoney:null,//普通商品-首批金额
-            goodsSupplementMoney:null,// 普通商品-补货金额
-            formula:'出库毛利额=现金出库总额-成本',
-            isToPosition:true,
-        }
-    },//业绩管理对象
-    /**
-     * 出库额和毛利计算
-     * @param data json,// 计算数据源
-     * @param tab int,//切换标签
-     * **/
-    get:function (data,tab) {
-        var resultObj = earningCalculateClass.resultObj;
-
-        resultObj.TAB = tab == undefined ? 0 : tab;
-
-        //现金出库额
-        resultObj.outboundAmountObj.monthCount = data.retData.Summary[0].orderCount == undefined ? null : data.retData.Summary[0].orderCount;
-        resultObj.outboundAmountObj.totalMoney = data.retData.Summary[0].outWarehouseTotalAmount == undefined ? null : data.retData.Summary[0].outWarehouseTotalAmount;
-
-        resultObj.outboundAmountObj.containerMoney = 0;
-        resultObj.outboundAmountObj.instrumentMoney = 0;
-        resultObj.outboundAmountObj.goodsFirstMoney = 0;
-        resultObj.outboundAmountObj.goodsSupplementMoney = 0;
-        resultObj.outboundAmountObj.retListData2 = data.retData.OutWareHouseAmount;
-        resultObj.outboundAmountObj.retListData2.forEach(function (val,idx,arr) {
-            val["recharge_date"] = resultObj.month;
-            val["name"] = val.StoreName;
-            val["containerMoney"] = ((val.hgoldClientamount * 100) + (val.hgnewClientamount * 100)) / 100;
-            val["instrumentMoney"] = ((val.yqoldClientamount * 100) + (val.yqnewClientamount * 100)) / 100;
-            arr[idx] = val;
-            resultObj.outboundAmountObj.containerMoney += (val.containerMoney * 100);
-            resultObj.outboundAmountObj.instrumentMoney += (val.instrumentMoney * 100);
-            resultObj.outboundAmountObj.goodsFirstMoney += ((val.ptnewClientamount * 100));
-            resultObj.outboundAmountObj.goodsSupplementMoney += ((val.ptoldClientamount * 100));
-        });
-        resultObj.outboundAmountObj.containerMoney = resultObj.outboundAmountObj.containerMoney / 100 + '';
-        resultObj.outboundAmountObj.instrumentMoney = resultObj.outboundAmountObj.instrumentMoney / 100 + '';
-        resultObj.outboundAmountObj.goodsFirstMoney /= 100;
-        resultObj.outboundAmountObj.goodsSupplementMoney /= 100;
-
-        //出库毛利额
-        resultObj.outboundProfitObj.monthCount = data.retData.Summary[0].orderCount == undefined ? null : data.retData.Summary[0].orderCount;
-        resultObj.outboundProfitObj.totalMoney = data.retData.Summary[0].profitTotalAmount == undefined ? null : data.retData.Summary[0].profitTotalAmount;
-
-        resultObj.outboundProfitObj.containerMoney = '';
-        resultObj.outboundProfitObj.instrumentMoney = '';
-        resultObj.outboundProfitObj.goodsFirstMoney = 0;
-        resultObj.outboundProfitObj.goodsSupplementMoney = 0;
-        // resultObj.outboundProfitObj.retListData2 = data.retData.ProfitAmount;
-        data.retData.ProfitAmount.forEach(function (val,idx,arr) {
-            val["recharge_date"] = resultObj.month;
-            val["name"] = val.storeName;
-            val["ptnewClientamount"] = val.newClientamount;
-            val["ptoldClientamount"] = val.oldClientamount;
-            arr[idx] = val;
-            resultObj.outboundProfitObj.goodsFirstMoney += ((val.newClientamount * 100));
-            resultObj.outboundProfitObj.goodsSupplementMoney += ((val.oldClientamount * 100));
-        });
-
-        resultObj.outboundProfitObj.goodsFirstMoney = parseInt(resultObj.outboundProfitObj.goodsFirstMoney);
-        resultObj.outboundProfitObj.goodsSupplementMoney = parseInt(resultObj.outboundProfitObj.goodsSupplementMoney);
-        resultObj.outboundProfitObj.goodsFirstMoney /= 100;
-        resultObj.outboundProfitObj.goodsSupplementMoney /= 100;
-
-        earningCalculateClass.resultObj = resultObj;
-
-        return earningCalculateClass.resultObj;
-    },
 }

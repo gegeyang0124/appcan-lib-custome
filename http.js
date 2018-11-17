@@ -8,12 +8,26 @@ var Http = {
     },
     /**
      * 请求网路接口 Post
+     * @param url string,//请求路径
+     * @param requestData json,//请求参数
+     * @param func function,//请求成功回调函数
+     * @param funcErr function,//请求失败报错
+     * @param dataType string,//接受后台数据的类型
+     * @param isPrompt boolean,//是否提示加载条，undefined（不传）显示加载条，否则不显示
+     * @param funcErrQuery function,//请求成功，后台查询报错回调函数
      * **/
     post:function(url,requestData, func, funcErr,isPrompt,funcErrQuery) {
         return Http.request(url,requestData, func, funcErr,"POST","json",isPrompt,funcErrQuery);
     },
     /**
      * 请求网路接口 Get
+     * @param url string,//请求路径
+     * @param requestData json,//请求参数
+     * @param func function,//请求成功回调函数
+     * @param funcErr function,//请求失败报错
+     * @param dataType string,//接受后台数据的类型
+     * @param isPrompt boolean,//是否提示加载条，undefined（不传）显示加载条，否则不显示
+     * @param funcErrQuery function,//请求成功，后台查询报错回调函数
      * **/
     get:function(url,requestData, func, funcErr,isPrompt,funcErrQuery) {
         return Http.request(url,requestData, func, funcErr,"GET","json",isPrompt,funcErrQuery);
@@ -551,10 +565,6 @@ var Http = {
             }
 
         });
-    },
-
-
-
-
+    }
 };
 
