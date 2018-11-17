@@ -2450,7 +2450,7 @@ var DownloaderMgr = {
 
     },
 
-}
+};
 
 /**
  * 操作视频 （原生）
@@ -2469,7 +2469,7 @@ var VideoMgrOperate = {
      * **/
     recordVideo:function (leng,func) {
         // alert("recorde 1");
-        verifyPlatform(function () {
+        PlatformOperate.verifyPlatform(function () {
             // alert("recorde");
             if(func != null && func != undefined)
             {
@@ -2532,7 +2532,7 @@ var VideoMgrOperate = {
      * **/
     playVideo:function (path,func) {
 
-        verifyPlatform(function () {
+        PlatformOperate.verifyPlatform(function () {
 
             VideoMgrOperate.closeVideo();
 
@@ -2641,7 +2641,7 @@ var VideoMgrOperate = {
     }
      * **/
     closeVideo:function (func) {
-        verifyPlatform(function () {
+        PlatformOperate.verifyPlatform(function () {
             if(func != null && func != undefined)
             {
                 uexVideo.onPlayerClose = function (info) {
@@ -2673,14 +2673,14 @@ var VideoMgrOperate = {
         // uexFileMgr.explorer("/var/mobile/Containers/Data/Application/AA1557D4-27A7-4C60-9014-D673DAE9F9A2/Documents/apps",function(err,path){
         uexFileMgr.explorer(path,function(err,path){
             if(!err){
-
                 callbackFunc({data:[path]});
             }else{
                 // alert(err);
             }
         });
 
-        /*alert("选择视频1:videoPicker");
+        /*
+        alert("选择视频1:videoPicker");
 
          uexVideo.videoPicker();
 
@@ -2717,11 +2717,8 @@ var VideoMgrOperate = {
          };
 
          alert("选择视频2");*/
-
-
-
     }
-}
+};
 
 /**
  * 文件操作 （原生）,打开文件（office类的等文件），解压文件，删除文件或文件夹
@@ -3017,7 +3014,7 @@ var FileMgrOperate = {
         });
 
     }
-}
+};
 
 
 
@@ -3294,6 +3291,8 @@ function playAuto(ctrl,filePath) {
 
 
 
+
+
 /**
  * file代表系统路径例如file://sdcard
 
@@ -3305,10 +3304,6 @@ function playAuto(ctrl,filePath) {
 // var unzipPathAndroid = "/storage/emulated/0/widgetone/apps/001/unzip";//android解压路径
 var unzipPathAndroid = "wgt://unzip";//android解压路径
 var unzipPathIOS = "/storage/emulated/0/widgetone/apps/001/unzip";//苹果解压路径
-
-
-
-
 
 /**
  * 地理定位 （JS）
@@ -3667,8 +3662,6 @@ function getLocation(open,funcChange,func,param) {
         });
     });
 }
-
-
 
 /**
  * 日历 (原生)
@@ -4278,8 +4271,6 @@ function asyncLoaded(url, callBack) { /*url为js的链接，callBack为url的js�
     // return "jj";
 }
 
-
-
 /**
  * 极光推送 （原生）
  * **/
@@ -4616,8 +4607,6 @@ var jPush = {
         uexJPush.clearLocalNotifications();
     }
 }
-
-
 
 /**
  * 上下滚动，事件
@@ -5224,11 +5213,6 @@ function isNumber(data) {
         return false;
     }
 }
-
-
-
-
-
 
 /**
  * 额外按钮操作
@@ -6359,10 +6343,6 @@ var drawTableChart = {
     },
 }
 
-
-
-
-
 var actionSheetOperate = {
     /**
      * 底部隐藏菜单
@@ -6548,8 +6528,6 @@ var actionSheetOperate = {
     }
 };
 
-
-
 /**
  * 返回上一页刷新
  * @param callbackFuncPre function,//回调函数，刷新时回调函数 进入前台回调
@@ -6714,40 +6692,8 @@ function weekConert(weekInt) {
 }
 
 /**
- * select下拉(待测试)
- 引用：iosSelect.css、iosSelect.js、iscroll.js
- 参数：new IosSelect(level, data, options)
-
- level: 级联等级，支持1,2,3,4,5 必选项
-
- data: [oneLevelArray[, twoLevelArray[, threeLevelArray, [fourLevelArray, [fiveLevelArray]]]]]
- 除了用数组，也可以用方法,前五项分别对应级联1,2,3,4,5项，每一项又是一个数组或方法 如果是数组： 每一项数组中包含一系列对象，
- 每个对象必须要有id,作为该条数据在该项数组中的唯一标识，value作为显示值，parentId是可选属性，作为关联的标志
-
- options:
- container: 组件的父元素，传入css3选择器，比如'.a' 或 '#a'之类的
- callback: 选择完毕后的回调函数 必选
- title: 选择框title  可选，没有此参数则不显示title
- itemHeight: 每一项的高度，可选，默认 35
- headerHeight: 组件标题栏高度 可选，默认 44
- cssUnit: css单位，目前支持px和rem，默认为px
- addClassName: 组件额外类名 可选，用于自定义样式
- relation: [1, 1, 0, 0]: [第一二级是否关联，第二三级是否关联，第三四级是否关联，第四五级是否关联] ，默认不关联，即默认是[0, 0, 0, 0]
- oneLevelId: 第一级选中id 可选
- twoLevelId: 第二级选中id 可选
- threeLevelId: 第三级选中id 可选
- fourLevelId: 第四级选中id 可选
- fiveLevelId: 第五级选中id 可选
- showLoading: 如果你的数据是异步加载的，可以使用该参数设置为true，下拉菜单会有加载中的效果
- itemShowCount: 组件展示选项数目 可以为3,5,7,9 默认为7
-
- @param tag1,string，eg:".a"或者"#a"，触发元素
- @param tag2,string，eg:".a"或者"#a"，存储结果元素
- @param data array/function,传入的数据
-
+ * 1级下拉内容
  * **/
-
-// 1级下拉内容
 function selectData(tag1,tag2,data){
     var showBankDom = document.querySelector(tag1);  //触发元素(点击)
     var bankIdDom = document.querySelector(tag2); //存储结果元素
@@ -6814,16 +6760,15 @@ var listViewOperate = {
     }
 }
 
-
-// /**
-//  * 图片不存在显示默认图片
-//  * @param imgPath string;//图片路径
-//  * **/
-// function nofind(imgPath){
-//     var img = event.srcElement;
-//     img.src = imgPath == undefined ? "../../images/nimg.jpg" : imgPath;
-//     img.onerror = null; //控制不要一直跳动
-// }
+/**
+ * 图片不存在显示默认图片
+ * @param imgPath string;//图片路径
+ * **/
+/*function nofind(imgPath){
+    var img = event.srcElement;
+    img.src = imgPath == undefined ? "../../images/nimg.jpg" : imgPath;
+    img.onerror = null; //控制不要一直跳动
+}*/
 
 /**
  * 标签位置变化处理，防止软键盘弹出标签下移； 使用场景：当输入框在顶部，posion属性是fixed时调用
@@ -6868,10 +6813,6 @@ function fixedChange(tagIdList) {
     // // document.getElementById("Page").style.height = screen.height + "px";
 
 }
-
-
-
-
 
 /**
  * 六棱柱菜单操作
@@ -6984,7 +6925,6 @@ var strReplaceOperate = {
         return fstStr + scdStr + lstStr;
     }
 }
-
 
 /**
  * 跨页面通道并且传送数据
