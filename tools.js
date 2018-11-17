@@ -3284,15 +3284,6 @@ function playAuto(ctrl,filePath) {
     });
 }
 
-
-
-
-
-
-
-
-
-
 /**
  * file代表系统路径例如file://sdcard
 
@@ -3301,9 +3292,9 @@ function playAuto(ctrl,filePath) {
  res://对应的资源路径，这个是只读的，即 应用安装路径的asset路径下的wgtres文件夹
  * **/
 
-// var unzipPathAndroid = "/storage/emulated/0/widgetone/apps/001/unzip";//android解压路径
+/*var unzipPathAndroid = "/storage/emulated/0/widgetone/apps/001/unzip";//android解压路径
 var unzipPathAndroid = "wgt://unzip";//android解压路径
-var unzipPathIOS = "/storage/emulated/0/widgetone/apps/001/unzip";//苹果解压路径
+var unzipPathIOS = "/storage/emulated/0/widgetone/apps/001/unzip";//苹果解压路径*/
 
 /**
  * 地理定位 （JS）
