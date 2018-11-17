@@ -24,7 +24,7 @@
  setJsonData；LocalStoreOperate;//保存数据
  getJsonData;// 获取json数据
  locationOperate; getLocation；//定位
- operateVideo；//操作视频
+ VideoMgrOperate；//操作视频
  calendar;// 日历
  baiduGeoMapCtrl;// 加载百度地图
  timerOperate;//时间控制器
@@ -35,7 +35,7 @@
  isNumber;// 判断是否是数字
  openDocument;// 打开文档
  fileMgrOperate;// 文件系统管理器
- downloaderMgr;// 下载管理器，下载操作！
+ DownloaderMgr;// 下载管理器，下载操作！
  buttonOperate;// 额外按钮操作
  drawTableChart;// 画表图,如折线图，比例图等
  localStorageOperate;// 本地临时存储
@@ -2309,6 +2309,716 @@ var TimerOperate = {
     },
 };
 
+/**
+ * 下载管理器，下载操作！
+ * **/
+var DownloaderMgr = {
+    /**
+     * 配置信息
+     * **/
+    config:{
+        downloader:null,//下载器对象
+        savePath:"wgts://download/",//保存文件路径 "/widgets/download/文件名.jpg"
+        fileNameFixed:null,//若不为null则为使用固定文件名保存
+        // savePath:"wgts://download/img" + (new Date()).getTime() + ".jpg",//保存文件路径 "/widgets/download/文件名.jpg"
+        // savePath:"/private/var/mobile/Media/DCIM/img" + (new Date()).getTime() + ".jpg",//保存文件路径 "/widgets/download/文件名.jpg"
+    },
+    /**
+     * 下载文件
+     * @param serverURL String,//下载文件的地址
+     * @param callbackFunc Function,//下载成功时，回调函数 callbackFunc(info)
+     * info = {
+         fileSize:fileSize,//	要下载的文件大小
+         percent:percent,//下载进度百分比 取值为0~100
+         status:status,//下载状态 0-下载中 1-下载完成 2-下载发生错误
+         filePath:filePath //下载文件的存储路径
+       }
+     * **/
+    downloadFile:function (serverURL,callbackFunc) {
+        PlatformOperate.verifyPlatform(function () {
+            DownloaderMgr.config.downloader = uexDownloaderMgr.create();
+            if(!DownloaderMgr.config.downloader){
+                toast("失败!");
+            }
+            else
+            {
+                var headJson = '{"Content-type":"application/json;charset=utf-8"}';
+                var savePath = null
+                if(DownloaderMgr.config.fileNameFixed == null)
+                {
+                    savePath = DownloaderMgr.config.savePath + serverURL.substring(serverURL.lastIndexOf('/') + 1);
+                }
+                else
+                {
+                    savePath = DownloaderMgr.config.savePath + DownloaderMgr.config.fileNameFixed;
+                }
+
+                if(DownloaderMgr.config.fileNameFixed == null && FileMgrOperate.isFileExistByPath(savePath))
+                {
+                    callbackFunc({
+                        filePath:savePath
+                    });
+                }
+                else
+                {
+
+                    // uexDownloaderMgr.setHeaders(DownloaderMgr.config.downloader, headJson);//设置请求头
+                    /**
+                     * 下载文件
+                     *
+                     参数名称	参数类型	是否必选	说明
+                     downloader	Object	是	由create接口创建的下载对象
+                     serverURL	String	是	服务器地址
+                     savePath	String	是	本地保存地址
+                     mode	Number	是	是否支持断点续传,0:不支持,1:支持
+                     cb	Function	是	下载进度回调,详见下**/
+                    uexDownloaderMgr.download(DownloaderMgr.config.downloader,
+                        serverURL,savePath,1, function (fileSize,percent,status) {
+
+                            /**
+                             * 字段名称	类型	是否必选	说明
+                             * path	String	是	文件路径.支持"wgt://","wgts://"、"file://"协议
+                             mode	Number	是	打开设置,1-可读 2-可写 4-不存在时创建新文件,可累加,如1+2 = 3表示可读可写.
+                             * **/
+                            // var file = uexFileMgr.open({
+                            //     path: DownloaderMgr.config.savePath,
+                            //     mode: 3
+                            // });
+                            // var filePath = uexFileMgr.getFilePath(file);//文件路径
+                            // // alert(path);
+
+                            /**
+                             * 参数名称	参数类型	是否必选	说明
+                             fileSize	Number	是	要下载的文件大小
+                             percent	Number	是	下载进度百分比 取值为0~100
+                             status	Number	是	下载状态 0-下载中 1-下载完成 2-下载发生错误**/
+                            var info = {
+                                fileSize:fileSize,
+                                percent:percent,
+                                status:status,
+                                filePath:savePath
+                            };
+
+                            switch (info.status) {
+                                case 0:
+                                    toast("下载进度" + info.percent + "%",{duration:0,
+                                        position:5,
+                                        type:1});
+                                    break;
+                                case 1:
+                                    appcan.window.closeToast();
+                                    // 下载完成
+                                    // DownloaderMgr.cancelDownload(serverURL);
+                                    DownloaderMgr.closeDownloader();
+                                    callbackFunc(info);
+
+                                    break;
+                                case 2:
+                                    toast("下载失败");
+                                    DownloaderMgr.cancelDownload(serverURL);
+                                    DownloaderMgr.closeDownloader();
+                                    break;
+                            }
+
+
+                        });
+
+                }
+
+            }
+        });
+    },
+    /**
+     * 取消下载
+     * @param serverURL,//下载文件的地址
+     * **/
+    cancelDownload:function (serverURL) {
+        PlatformOperate.verifyPlatform(function () {
+            /**
+             * serverURL	String	是	服务器下载地址
+             clearMode	Number	否	默认为0.0-只取消此次下载任务,不清除已经下载的临时文件. 1-取消此次下载任务并清除已经下载的临时文件**/
+            uexDownloaderMgr.cancelDownload(serverURL,1);
+        });
+    },
+    /**
+     * 关闭下载对象
+     * **/
+    closeDownloader:function () {
+        PlatformOperate.verifyPlatform(function () {
+            uexDownloaderMgr.closeDownloader(DownloaderMgr.config.downloader);
+        });
+
+    },
+
+}
+
+/**
+ * 操作视频 （原生）
+ * **/
+var VideoMgrOperate = {
+    /**
+     * 录制视频
+     * @param leng //录制视频时间长度
+     * @param func //录制视频完成回调函数
+     * func(info)
+     info = {
+        result,//	Number	录制结果. 0-录制成功 1-用户取消录制 2-视频录制或者压缩过程发送错误
+        path,//	String	仅录制成功时才会有此参数,录制压缩得到的视频文件路径
+       }
+
+     * **/
+    recordVideo:function (leng,func) {
+        // alert("recorde 1");
+        verifyPlatform(function () {
+            // alert("recorde");
+            if(func != null && func != undefined)
+            {
+                // alert("recorde");
+                // alert("recorde: " + videoRecordTimeConfig);
+                //onRecordFinish(info) //录制结束的监听方法
+                uexVideo.onRecordFinish = function (info) {
+
+                    /**
+                     info = {
+        result,//	Number	录制结果. 0-录制成功 1-用户取消录制 2-视频录制或者压缩过程发送错误
+        path,//	String	仅录制成功时才会有此参数,录制压缩得到的视频文件路径
+       }
+                     * **/
+
+                    info = JSON.parse(info);//alert(JSON.stringify(info))
+                    if(info.result == 0)
+                    {
+
+                        setTimeout(function () {
+                            localStorage["videoPath"] = info.path.substring(0,info.path.lastIndexOf('/'));
+                        },0);
+                        func(info);
+
+                    }
+
+                };
+            }
+
+            if(leng == null || leng != undefined)
+            {
+                leng = videoRecordTimeConfig == undefined ? 60 : videoRecordTimeConfig;
+            }
+
+
+            /*
+             参数名称	参数类型	是否必选	说明
+             maxDuration	Number	否	视频录制最大时间,单位s(秒)
+             qualityType	Number	否	视频分辨率类型,取值为0,1,2,默认为0.0:1920x1080, 1:1280x720, 2:640x480
+             bitRateType	Number	否	视频录制时采样率类型,取值为0, 1, 2, 默认为0, 0: 高采样率, 1: 中采样率, 2: 低采样率
+             fileType	String	否	输出的视频文件格式,默认为mp4.Android 平台上支持的的视频文件格式有:mp4、3gp; IOS支持的压缩视频文件格式有:mp4,mov*/
+            var params = {
+                maxDuration:leng,
+                qualityType:1,
+                bitRateType:1,
+                fileType:"mp4"
+            };
+
+            uexVideo.record(params);
+        });
+    },
+    /**
+     * 播放视频
+     * @param func ;各种状态的监听回调方法;若为1时，
+     * func = {
+     * onPlayerFinish :function,//onPlayerFinish //播放完成后的监听方法
+     * onPlayerStatusChange：function，onPlayerStatusChange //播放器状态改变的监听方法
+     * onPlayerEndTime：function，onPlayerEndTime //视频播放到endTime 的监听
+     * onPlayerClose：function，onPlayerClose //播放器被关闭时的监听方法
+     * **/
+    playVideo:function (path,func) {
+
+        verifyPlatform(function () {
+
+            VideoMgrOperate.closeVideo();
+
+            /*
+             uexVideo.onPlayerStatusChange(info) //播放器状态改变的监听方法
+             var info = {
+             status:
+             }
+             字段名称	类型	说明
+             status	Number	播放器状态 0-暂停中 1-缓冲中 2-播放中 3-发生错误.*/
+            uexVideo.onPlayerStatusChange = function (info) {
+                // alert("info: " + JSON.stringify(info));
+                if(func != null && func != undefined)
+                {
+                    if(func.onPlayerStatusChange != null && func.onPlayerStatusChange != undefined){
+                        /**info = {status:}
+                         * status	Number	播放器状态 0-暂停中 1-缓冲中 2-播放中 3-发生错误.
+                         * **/
+                        func.onPlayerStatusChange(info);
+                    }
+                }
+
+            };
+
+            //onPlayerFinish //播放完成后的监听方法
+            uexVideo.onPlayerFinish = function() {
+                // alert("完成");
+                if(func != null && func != undefined)
+                {
+                    if(func.onPlayerFinish != null && func.onPlayerFinish != undefined){
+                        func.onPlayerFinish();//无回传参数
+                    }
+                }
+            };
+
+            //onPlayerEndTime //视频播放到endTime 的监听
+            uexVideo.onPlayerEndTime = function () {
+                // alert("完成endTime");
+                if(func != null && func != undefined)
+                {
+                    if(func.onPlayerEndTime != null && func.onPlayerEndTime != undefined){
+                        func.onPlayerEndTime();//无回传参数
+                    }
+                }
+
+            };
+
+            /*var info = {
+                src:,
+                currentTime:
+            }
+            各字段含义如下:
+
+                字段名称	类型	说明
+            src	String	视频文件路径
+            currentTime	Number	被关闭时视频正在播放的时间.*/
+            uexVideo.onPlayerClose = function(info){
+                if(func != null && func != undefined)
+                {
+                    if(func.onPlayerClose != null && func.onPlayerClose != undefined){
+                        func.onPlayerClose(info);//回传参数
+                    }
+                }
+            };
+
+            /**
+             * openPlayer //打开视频播放器
+             src	String	是	播放文件路径. 支持本地路径wgt://,res://,file://和网络路径http://,https://
+             startTime	Number	否	视频开始播放时间,单位为s(秒).默认为0.
+             endTime	Number	否	视频结束播放时间,单位为s(秒).默认为0.可以用于试看等功能，回调onPlayerEndTime
+             autoStart	Boolean	否	是否自动开始.默认为false.
+             forceFullScreen	Boolean	否	是否强制全屏,详见下方说明.默认为false.
+             showCloseButton	Boolean	否	是否显示关闭按钮,用户可以通过点击此按钮关闭播放器.默认为false.
+             showScaleButton	Boolean	否	是否显示缩放按钮,用户可以通过点击此按钮切换全屏/非全屏模式.默认为true.
+             width	Number	否	播放器宽度,单位px.默认为屏幕宽度.
+             height	Number	否	播放器高度,单位px.默认为屏幕高度.
+             x	Number	否	播放器左边距,单位px.默认为0.
+             y	Number	否	播放器上边距,单位px.默认为0.
+             scrollWithWeb	Boolean	否	普通状态下播放器是否跟随网页滑动.默认为true.
+             isAutoEndFullScreen	Boolean	否	全屏状态下播放完成后是否自动切换为正常状态，
+             默认false，forceFullScreen参数为false时生效**/
+            var param = {
+                src:path,
+                startTime:0,
+                autoStart:true,
+                forceFullScreen:false,
+                showCloseButton:true,
+                showScaleButton:true,
+                // width:screen.width,
+                height:620,
+                x:0,
+                y:400,
+                scrollWithWeb:false,
+                isAutoEndFullScreen:true,
+            };
+            uexVideo.openPlayer(JSON.stringify(param));
+        });
+    },
+    /**
+     * 关闭播放器
+     * @param func function,//回调
+     * func(info);
+     * var info = {
+    src:,//String	视频文件路径
+    currentTime:,//Number	被关闭时视频正在播放的时间.
+    }
+     * **/
+    closeVideo:function (func) {
+        verifyPlatform(function () {
+            if(func != null && func != undefined)
+            {
+                uexVideo.onPlayerClose = function (info) {
+
+                    if(func != undefined && func != null)
+                    {
+                        func(info);
+                    }
+
+                };
+            }
+
+            uexVideo.closePlayer();
+        });
+    },
+    /**
+     * 选择视频
+     * @param callbackFunc function,//回调函数
+     * **/
+    pickVideo:function (callbackFunc) {
+
+        // alert("选择视频1");
+        var p = localStorage["videoPath"];
+        var path = p == undefined ? "file://" : p == '' ? "file://" : p == null ?  "file://" :  p == 'null' ? "file://" : p;
+
+        // });
+
+        // alert(JSON.stringify(path));
+        // uexFileMgr.explorer("/var/mobile/Containers/Data/Application/AA1557D4-27A7-4C60-9014-D673DAE9F9A2/Documents/apps",function(err,path){
+        uexFileMgr.explorer(path,function(err,path){
+            if(!err){
+
+                callbackFunc({data:[path]});
+            }else{
+                // alert(err);
+            }
+        });
+
+        /*alert("选择视频1:videoPicker");
+
+         uexVideo.videoPicker();
+
+             uexVideo.onVideoPickerClosed = function(data){
+                 /!**回传数据
+                  * var data = {
+            data:[
+             {
+                 src :,//选择视频的本地绝对路径
+             }
+             ...
+         ]
+         isCancelled:,是否为取消选择,取消为true,其他为false
+               }
+                  * **!/
+                 if(callbackFunc != undefined && data.isCancelled)
+                 {
+                     callbackFunc(data);
+                 }
+             };
+
+         uexFileMgr.explorer("/var/mobile/Containers/Data/Application",function(err,path){
+         // uexFileMgr.explorer("/var/mobile/Media/DCIM",function(err,path){
+             if(!err){
+                 alert(path);
+             }else{
+                 alert(err);
+             }
+         });
+
+         uexVideo.videoPicker();
+         uexVideo.onVideoPickerClosed = function(data){
+             alert("sdds:" + JSON.stringify(data));
+         };
+
+         alert("选择视频2");*/
+
+
+
+    }
+}
+
+/**
+ * 文件操作 （原生）,打开文件（office类的等文件），解压文件，删除文件或文件夹
+ * **/
+var FileMgrOperate = {
+    /**
+     * 打开文档
+     * @param path string/array ，//路径，可以是数组，也可以是字符串；图片可以放多张，其他文件只允许一个
+     * **/
+    openDocument:function(path,callbackFunc) {
+        PlatformOperate.verifyPlatform(function () {
+            if(!(path.constructor == Array))
+            {
+                path = [path];
+            }
+
+            var verfyStr = path[0];
+            if(typeof(verfyStr) == 'object')
+            {
+                verfyStr = verfyStr.src;
+            }
+
+            // alert(JSON.stringify(path));
+            if(verfyStr.indexOf('.png') > 0 || verfyStr.indexOf('.jpg') > 0)
+            {
+                // alert(path[0]);
+                ImgOperate.openBrowserImg(path,callbackFunc);
+            }
+            else if(verfyStr.indexOf('.mp4') > 0)
+            {
+                VideoMgrOperate.playVideo(verfyStr);
+            }
+            else if(verfyStr.indexOf('.mp3') > 0)
+            {
+                playAuto(0,verfyStr);
+            }
+            else if(verfyStr.indexOf('.htm') > 0)
+            {
+                var href = verfyStr;
+                var offsetHeight = document.getElementById("Header").offsetHeight;
+                if(PlatformOperate.getPlatform(2))
+                {
+                    offsetHeight = offsetHeight / 2;
+                }
+
+                BrowerOperate.openPageBrower(href,offsetHeight);
+                if(callbackFunc != undefined && callbackFunc != null)
+                {
+                    BrowerOperate.getPageTitle(function (title) {
+                        callbackFunc(title);
+                    });
+
+                }
+
+            }
+            else
+            {
+                FileMgrOperate.readerDocument(verfyStr,callbackFunc);
+            }
+        });
+    },
+    /**
+     * 打开文件浏览器（原生）
+     * error	Number	是否发生错误. 未发生错误时error为0, 发生错误或者用户取消选择时error为非0值
+     path	String	用户选择的文件的路径;若用户取消选择,则path为null
+     * @param func（error，path） 选择文件成功后的回调函数
+     * **/
+    selectFiles:function (func) {
+        PlatformOperate.verifyPlatform(function () {
+            // alert("verifyPlatform");
+            uexFileMgr.explorer("/sdcard/",func);
+        });
+
+    },
+    /**
+     * 搜索指定文件夹下的文件 （原生）
+     * @param path string;//搜索文件夹路径
+     * @param func（err,result）func;//搜索成功回调函数
+     * err	Number	为0时表示成功,非0时表示失败
+     result	Array	搜索操作结果,所有符合条件的路径构成的数组;若没有路径符合搜索条件,则为一个空数组
+     * **/
+    searchFiles:function (path,func) {
+        PlatformOperate.verifyPlatform(function () {
+            /*
+            path	是	String	目标文件夹路径
+             flag	否	Number	搜索设置 见下 不传默认为0
+             keywords	否	Array	要搜索的文件名关键字 不传时搜索所有
+             suffixes	否	Array	要搜索的文件后缀名 不传时搜索所有
+
+             1	匹配文件夹 也搜索符合条件的文件夹(有设置suffixes时,此项设置失效)
+             2	精确匹配 只搜索文件名恰为keyword的文件
+             4	递归搜索 搜索目标文件夹及其子文件夹
+
+             var param = {
+             path:unzipPath(),
+             flag:1,
+             keywords:[],
+             suffixes:[]
+             };
+             * */
+
+            // alert(unzipPath());
+            if(param == null){
+                param = {
+                    path:path,
+                    flag:1
+                };
+            }
+
+            uexFileMgr.search(JSON.stringify(param),func)
+        });
+    },
+    /**
+     * 文档阅读Document阅读器,是用来阅读Office文件的,包括PPT幻灯片,Excel表格,.doc或.docx文档,以及txt,pdf格式文件的. （原生）
+     * @param documentPath 路径
+     * @param callbackFunc //若是网络地址则可以传入下载完成的回调函数，反之不需要、传了也无效
+     * **/
+    readerDocument:function (documentPath,callbackFunc){
+        PlatformOperate.verifyPlatform(function () {
+            if(documentPath.indexOf("http") == 0 )
+            {
+                DownloaderMgr.downloadFile(documentPath,function (info) {
+                    //openDocumentReader //打开阅读器
+                    if(callbackFunc != undefined)
+                    {
+                        callbackFunc(info);
+                    }
+                    uexDocumentReader.openDocumentReader(info.filePath);
+                });
+            }
+            else
+            {
+                //openDocumentReader //打开阅读器
+                uexDocumentReader.openDocumentReader(documentPath);
+            }
+
+        });
+    },
+    /**
+     * 解压文件（原生）
+     * error	Number	压缩结果，0-成功，非0-失败解压
+     * @param func（error） 选择文件成功后的回调函数
+     * @param srcPath	String	是	要解压缩的文件路径,路径协议详见CONSTANT中PathTypes
+     * @param password	String	是	解压密码,为null没有解压密码
+     * **/
+    unzip:function (srcPath, func, password) {
+        PlatformOperate.verifyPlatform(function () {
+            var path = unzipPath();
+
+            if(password == null)
+            {
+                /*srcPath	String	是	要解压缩的文件路径,路径协议详见CONSTANT中PathTypes
+                 zippedPath	String	是	解压缩后的文件路径,路径协议详见CONSTANT中PathTypes
+                 cb	Function	否	回调函数*/
+                uexZip.unzip(srcPath,path,func);
+            }
+            else
+            {
+                /*srcPath	String	是	要解压缩的文件路径,路径协议详见CONSTANT中PathTypes
+                 zippedPath	String	是	解压缩后的文件路径,路径协议详见CONSTANT中PathTypes
+                 password	String	是	解压密码
+                 cb	Function	否	回调函数*/
+                uexZip.unzipWithPassword(srcPath,path,password,func);
+            }
+        });
+    },
+    /**
+     * uexFileMgr.getFileSizeByPath(params,cb) //获取文件大小
+     *@param path string， 文件路径
+     * @param func function ， 成功回调函数
+     * error	Number	为0表示操作成功,非0时表示操作失败
+     info	Object	操作获取到的结果
+     info = var info = {
+    unit:,//String,文件大小单位
+    data://Number,文件大小
+},
+     * func = function(err,info){}
+     参数名称	参数类型	是否必选	说明
+     param	String	是	param是字典结构json字符串,详情见下
+     cb	Function	是	操作结束后,会调用此函数,函数参数说明见下
+     var params = {
+    path:,
+    unit:
+}
+     path	String	是	文件或文件夹路径,支持wgt://, wgts://, file://协议路径,参考协议
+     unit	String	否	文件大小单位,默认为"B",取值范围参考unit
+     *
+     */
+    getFileSizeByPath:function (path,func) {
+        var params = {
+            path:path,
+            unit:"KB",
+        }
+        uexFileMgr.getFileSizeByPath(params,func)
+    },
+    /**
+     * deleteFileByPath(path) //根据路径删除文件
+     * @param path string,//文件路径
+     */
+    deleteFileByPath:function (path) {
+        uexFileMgr.deleteFileByPath(path);
+    },
+    /**
+     * deleteFolderByPath(path) //根据路径删除文件夹及子文件
+     * @param pathFolder string,//文件夹路径
+     */
+    deletefolderByPath:function (pathFolder) {
+        // uexFileMgr.deleteFileByPath(path);
+        // uexFileMgr.getFileListByPath(pathFolder)
+        // var path = "wgt://"
+        var path = pathFolder;
+        var result = uexFileMgr.getFileListByPath(path);
+        /* result.values[0].nameValuePairs : {
+         fileName:,
+         filePath:,
+         fileType:
+         }
+         字段名称	类型	说明
+         fileName	String	文件名
+         filePath	String	文件路径
+         fileType	Number	类型.0-文件 1-文件夹
+         示例:
+         * */
+        // alert(JSON.stringify(result));
+        // alert(JSON.stringify(result.values[0].nameValuePairs.filePath));
+        var fileInfo = null;
+        for(var i = 0; i < result.values.length; i++)
+        {
+            fileInfo = result.values[i].nameValuePairs;
+            if(fileInfo.fileType == 1)
+            {
+                setTimeout(function () {
+                    FileMgrOperate.deletefolderByPath(fileInfo.filePath);
+                },0);
+            }
+            else
+            {
+                FileMgrOperate.deleteFileByPath(fileInfo.filePath);
+            }
+        }
+
+    },
+    /**
+     * 文件是否存在
+     * @param filePath string,//文件路径
+     * return true;//true存在，false不存在
+     * **/
+    isFileExistByPath:function (filePath) {
+        return uexFileMgr.isFileExistByPath(filePath);
+    },
+    /**
+     * 读取文件文件数据流
+     * @param path,//文件路径
+     * @param callbackFunc,//回调函数，callbackFunc(data);data为文件数据
+     * **/
+    readFileData:function (path,callbackFunc) {
+        /**
+         * uexFileMgr.open(param)
+         * var param = {
+    path:,
+    mode:
+}
+         * path	String	是	文件路径.支持"wgt://","wgts://"、"file://"协议
+         mode	Number	是	打开设置,1-可读 2-可写 4-不存在时创建新文件,可累加,如1+2 = 3表示可读可写.
+         * **/
+        var file = uexFileMgr.open({
+            path: path,
+            mode: 3
+        });
+
+        /**
+         * uexFileMgr.readFile(file,len,flag,cb)
+         *
+         参数名称	参数类型	是否必选	说明
+         file	String	是	uexFile对象file
+         len	Number	是	字节数,传-1表示读取全部内容
+         flag	Number	是	读取设置(详见下)
+         cb	Function	是	读取结束后,会调用此函数,函数参数说明见下
+         flag是一个枚举值,将所需设置对应的值传入即可.
+         同时需要多种设置时,应将设置对应的flag相加后再传入.
+         不需要这些额外设置时,flag请传0.**/
+        uexFileMgr.readFile(file, -1,0,function(error,data){
+            if(!error){
+                // alert(data);
+                if(callbackFunc != null && callbackFunc != undefined)
+                {
+                    callbackFunc(data);
+                }
+            }else{
+                DialogOperate.alr2("读取失败!");
+            }
+
+        });
+
+    }
+}
+
 
 
 
@@ -2596,213 +3306,9 @@ function playAuto(ctrl,filePath) {
 var unzipPathAndroid = "wgt://unzip";//android解压路径
 var unzipPathIOS = "/storage/emulated/0/widgetone/apps/001/unzip";//苹果解压路径
 
-/**
- * 获取android或ios对应的解压路径
- * **/
-var unzipPath = function () {
-    if(getPlatform(1)){
-        return unzipPathAndroid;
-    }
-    else
-    {
-        return unzipPathAndroid;
-    }
-};
 
-/**
- * 文件操作 （原生）
- * **/
-var fileOperate = {
-    /**
-     * 打开文件浏览器（原生）
-     * error	Number	是否发生错误. 未发生错误时error为0, 发生错误或者用户取消选择时error为非0值
-     path	String	用户选择的文件的路径;若用户取消选择,则path为null
-     * @param func（error，path） 选择文件成功后的回调函数
-     * **/
-    selectFiles:function (func) {
-        verifyPlatform(function () {
-            // alert("verifyPlatform");
-            uexFileMgr.explorer("/sdcard/",func);
-        });
 
-    },
-    /**
-     * 搜索指定文件夹下的文件 （原生）
-     * @param 搜索文件夹条件参数,为null采用默认设置
-     * @param func（err,result） 搜索成功回调函数
-     * error	Number	为0时表示成功,非0时表示失败
-     result	Array	搜索操作结果,所有符合条件的路径构成的数组;若没有路径符合搜索条件,则为一个空数组
-     * **/
-    searchFiles:function (param,func) {
-        verifyPlatform(function () {
-            /*
-            path	是	String	目标文件夹路径
-             flag	否	Number	搜索设置 见下 不传默认为0
-             keywords	否	Array	要搜索的文件名关键字 不传时搜索所有
-             suffixes	否	Array	要搜索的文件后缀名 不传时搜索所有
 
-             1	匹配文件夹 也搜索符合条件的文件夹(有设置suffixes时,此项设置失效)
-             2	精确匹配 只搜索文件名恰为keyword的文件
-             4	递归搜索 搜索目标文件夹及其子文件夹
-
-             var param = {
-             path:unzipPath(),
-             flag:1,
-             keywords:[],
-             suffixes:[]
-             };
-             * */
-
-            // alert(unzipPath());
-            if(param == null){
-                param = {
-                    path:unzipPath(),
-                    flag:1
-                };
-            }
-
-            uexFileMgr.search(JSON.stringify(param),func)
-        });
-    },
-    /**
-     * 文档阅读Document阅读器,是用来阅读Office文件的,包括PPT幻灯片,Excel表格,.doc或.docx文档,以及txt,pdf格式文件的. （原生）
-     * @param documentPath 路径
-     * @param callbackFunc //若是网络地址则可以传入下载完成的回调函数，反之不需要、传了也无效
-     * **/
-    readerDocument:function (documentPath,callbackFunc){
-        verifyPlatform(function () {
-            if(documentPath.indexOf("http") == 0 )
-            {
-                downloaderMgr.downloadFile(documentPath,function (info) {
-                    //openDocumentReader //打开阅读器
-                    if(callbackFunc != undefined)
-                    {
-                        callbackFunc(info);
-                    }
-                    uexDocumentReader.openDocumentReader(info.filePath);
-                });
-            }
-            else
-            {
-                //openDocumentReader //打开阅读器
-                uexDocumentReader.openDocumentReader(documentPath);
-            }
-
-        });
-    },
-    /**
-     * 解压文件（原生）
-     * error	Number	压缩结果，0-成功，非0-失败解压
-     * @param func（error） 选择文件成功后的回调函数
-     * @param srcPath	String	是	要解压缩的文件路径,路径协议详见CONSTANT中PathTypes
-     * @param password	String	是	解压密码,为null没有解压密码
-     * **/
-    unzip:function (srcPath, func, password) {
-        verifyPlatform(function () {
-            var path = unzipPath();
-
-            if(password == null)
-            {
-                /*srcPath	String	是	要解压缩的文件路径,路径协议详见CONSTANT中PathTypes
-                 zippedPath	String	是	解压缩后的文件路径,路径协议详见CONSTANT中PathTypes
-                 cb	Function	否	回调函数*/
-                uexZip.unzip(srcPath,path,func);
-            }
-            else
-            {
-                /*srcPath	String	是	要解压缩的文件路径,路径协议详见CONSTANT中PathTypes
-                 zippedPath	String	是	解压缩后的文件路径,路径协议详见CONSTANT中PathTypes
-                 password	String	是	解压密码
-                 cb	Function	否	回调函数*/
-                uexZip.unzipWithPassword(srcPath,path,password,func);
-            }
-        });
-    },
-    /**
-     * uexFileMgr.getFileSizeByPath(params,cb) //获取文件大小
-     *@param path string， 文件路径
-     * @param func function ， 成功回调函数
-     * error	Number	为0表示操作成功,非0时表示操作失败
-     info	Object	操作获取到的结果
-     info = var info = {
-    unit:,//String,文件大小单位
-    data://Number,文件大小
-},
-     * func = function(err,info){}
-     参数名称	参数类型	是否必选	说明
-     param	String	是	param是字典结构json字符串,详情见下
-     cb	Function	是	操作结束后,会调用此函数,函数参数说明见下
-     var params = {
-    path:,
-    unit:
-}
-     path	String	是	文件或文件夹路径,支持wgt://, wgts://, file://协议路径,参考协议
-     unit	String	否	文件大小单位,默认为"B",取值范围参考unit
-     *
-     */
-    getFileSizeByPath:function (path,func) {
-        var params = {
-            path:path,
-            unit:"KB",
-        }
-        uexFileMgr.getFileSizeByPath(params,func)
-    },
-    /**
-     * deleteFileByPath(path) //根据路径删除文件
-     * @param path string,//文件路径
-     */
-    deleteFileByPath:function (path) {
-        uexFileMgr.deleteFileByPath(path);
-    },
-    /**
-     * deleteFolderByPath(path) //根据路径删除文件夹及子文件
-     * @param pathFolder string,//文件夹路径
-     */
-    deletefolderByPath:function (pathFolder) {
-        // uexFileMgr.deleteFileByPath(path);
-        // uexFileMgr.getFileListByPath(pathFolder)
-        // var path = "wgt://"
-        var path = pathFolder;
-        var result = uexFileMgr.getFileListByPath(path);
-        /* result.values[0].nameValuePairs : {
-         fileName:,
-         filePath:,
-         fileType:
-         }
-         字段名称	类型	说明
-         fileName	String	文件名
-         filePath	String	文件路径
-         fileType	Number	类型.0-文件 1-文件夹
-         示例:
-         * */
-        // alert(JSON.stringify(result));
-        // alert(JSON.stringify(result.values[0].nameValuePairs.filePath));
-        var fileInfo = null;
-        for(var i = 0; i < result.values.length; i++)
-        {
-            fileInfo = result.values[i].nameValuePairs;
-            if(fileInfo.fileType == 1)
-            {
-                setTimeout(function () {
-                    fileOperate.deletefolderByPath(fileInfo.filePath);
-                },0);
-            }
-            else
-            {
-                fileOperate.deleteFileByPath(fileInfo.filePath);
-            }
-        }
-
-    },
-    /**
-     * 文件是否存在
-     * @param filePath string,//文件路径
-     * return true;//true存在，false不存在
-     * **/
-    isFileExistByPath:function (filePath) {
-        return uexFileMgr.isFileExistByPath(filePath);
-    },
-}
 
 /**
  * 地理定位 （JS）
@@ -3162,341 +3668,7 @@ function getLocation(open,funcChange,func,param) {
     });
 }
 
-/**
- * 操作视频 （原生）
- * **/
-var operateVideo = {
-    /**加载配置文件
-     * @param src string，//配置文件路径
-     * @param callbackFunc function，//回调函数
-     * @param count int，//已执行次数
-     * **/
-    configLoad:function (src,callbackFunc,count) {
-        /**配置文件数据
-         * Created by Administrator on 2017/8/16.
 
-         var videoRecordTimeConfig_Real= 30;//乐歆app录制视频配置时间长度，单位（s）*/
-
-        /* var script = document.createElement("script");
-         script.type = "text/javascript";
-         script.src = src == undefined ? urlSets.urlConfig : src;
-         document.body.appendChild(script);
-         setTimeout(function () {
-             videoRecordTimeConfig = videoRecordTimeConfig_Real;
-         },1000);*/
-
-        count = count == undefined ? 0 : ++count;
-        src = src == undefined ? urlSets.urlConfig : src;
-        // src = src == undefined ? "http://192.168.10.6:3000/lexin-11640652/phone/assets/lx_yyt.json" : src;
-        httpRequestFile(src,function (data) {
-            app_config_service = data;
-            videoRecordTimeConfig = data.videoRecordTimeConfig_Real;
-            data.APP_URL = data.APP_URL.replace("$APP_ID",data.APP_ID);
-
-            if(callbackFunc != undefined)
-            {
-                callbackFunc(data);
-            }
-
-        },function (err) {
-            if(count < 3)
-            {
-                operateVideo.configLoad(src,callbackFunc,count);
-            }
-
-        });
-    },
-    /**录制视频
-     * @param leng //录制视频时间长度
-     * @param func //录制视频完成回调函数
-     * func(info)
-     info = {
-        result,//	Number	录制结果. 0-录制成功 1-用户取消录制 2-视频录制或者压缩过程发送错误
-        path,//	String	仅录制成功时才会有此参数,录制压缩得到的视频文件路径
-       }
-
-     * **/
-    recordVideo:function (leng,func) {
-        // alert("recorde 1");
-        verifyPlatform(function () {
-            // alert("recorde");
-            if(func != null && func != undefined)
-            {
-                // alert("recorde");
-                // alert("recorde: " + videoRecordTimeConfig);
-                //onRecordFinish(info) //录制结束的监听方法
-                uexVideo.onRecordFinish = function (info) {
-
-                    /**
-                     info = {
-        result,//	Number	录制结果. 0-录制成功 1-用户取消录制 2-视频录制或者压缩过程发送错误
-        path,//	String	仅录制成功时才会有此参数,录制压缩得到的视频文件路径
-       }
-                     * **/
-
-                    info = JSON.parse(info);//alert(JSON.stringify(info))
-                    if(info.result == 0)
-                    {
-
-                        setTimeout(function () {
-                            localStorage["videoPath"] = info.path.substring(0,info.path.lastIndexOf('/'));
-                        },0);
-                        func(info);
-
-                    }
-
-                };
-            }
-
-            if(leng == null || leng != undefined)
-            {
-                leng = videoRecordTimeConfig == undefined ? 60 : videoRecordTimeConfig;
-            }
-
-
-            /*
-             参数名称	参数类型	是否必选	说明
-             maxDuration	Number	否	视频录制最大时间,单位s(秒)
-             qualityType	Number	否	视频分辨率类型,取值为0,1,2,默认为0.0:1920x1080, 1:1280x720, 2:640x480
-             bitRateType	Number	否	视频录制时采样率类型,取值为0, 1, 2, 默认为0, 0: 高采样率, 1: 中采样率, 2: 低采样率
-             fileType	String	否	输出的视频文件格式,默认为mp4.Android 平台上支持的的视频文件格式有:mp4、3gp; IOS支持的压缩视频文件格式有:mp4,mov*/
-            var params = {
-                maxDuration:leng,
-                qualityType:1,
-                bitRateType:1,
-                fileType:"mp4"
-            };
-
-            uexVideo.record(params);
-        });
-    },
-    /**播放视频
-     * @param func ;各种状态的监听回调方法;若为1时，
-     * func = {
-     * onPlayerFinish :function,//onPlayerFinish //播放完成后的监听方法
-     * onPlayerStatusChange：function，onPlayerStatusChange //播放器状态改变的监听方法
-     * onPlayerEndTime：function，onPlayerEndTime //视频播放到endTime 的监听
-     * onPlayerClose：function，onPlayerClose //播放器被关闭时的监听方法
-     * **/
-    playVideo:function (path,func) {
-
-        verifyPlatform(function () {
-
-            operateVideo.closeVideo();
-
-            /*
-             uexVideo.onPlayerStatusChange(info) //播放器状态改变的监听方法
-             var info = {
-             status:
-             }
-             字段名称	类型	说明
-             status	Number	播放器状态 0-暂停中 1-缓冲中 2-播放中 3-发生错误.*/
-            uexVideo.onPlayerStatusChange = function (info) {
-                // alert("info: " + JSON.stringify(info));
-                if(func != null && func != undefined)
-                {
-                    if(func.onPlayerStatusChange != null && func.onPlayerStatusChange != undefined){
-                        /**info = {status:}
-                         * status	Number	播放器状态 0-暂停中 1-缓冲中 2-播放中 3-发生错误.
-                         * **/
-                        func.onPlayerStatusChange(info);
-                    }
-                }
-
-            };
-
-            //onPlayerFinish //播放完成后的监听方法
-            uexVideo.onPlayerFinish = function() {
-                // alert("完成");
-                if(func != null && func != undefined)
-                {
-                    if(func.onPlayerFinish != null && func.onPlayerFinish != undefined){
-                        func.onPlayerFinish();//无回传参数
-                    }
-                }
-            };
-
-            //onPlayerEndTime //视频播放到endTime 的监听
-            uexVideo.onPlayerEndTime = function () {
-                // alert("完成endTime");
-                if(func != null && func != undefined)
-                {
-                    if(func.onPlayerEndTime != null && func.onPlayerEndTime != undefined){
-                        func.onPlayerEndTime();//无回传参数
-                    }
-                }
-
-            };
-
-            /*var info = {
-                src:,
-                currentTime:
-            }
-            各字段含义如下:
-
-                字段名称	类型	说明
-            src	String	视频文件路径
-            currentTime	Number	被关闭时视频正在播放的时间.*/
-            uexVideo.onPlayerClose = function(info){
-                if(func != null && func != undefined)
-                {
-                    if(func.onPlayerClose != null && func.onPlayerClose != undefined){
-                        func.onPlayerClose(info);//回传参数
-                    }
-                }
-            };
-
-            /**openPlayer //打开视频播放器
-             src	String	是	播放文件路径. 支持本地路径wgt://,res://,file://和网络路径http://,https://
-             startTime	Number	否	视频开始播放时间,单位为s(秒).默认为0.
-             endTime	Number	否	视频结束播放时间,单位为s(秒).默认为0.可以用于试看等功能，回调onPlayerEndTime
-             autoStart	Boolean	否	是否自动开始.默认为false.
-             forceFullScreen	Boolean	否	是否强制全屏,详见下方说明.默认为false.
-             showCloseButton	Boolean	否	是否显示关闭按钮,用户可以通过点击此按钮关闭播放器.默认为false.
-             showScaleButton	Boolean	否	是否显示缩放按钮,用户可以通过点击此按钮切换全屏/非全屏模式.默认为true.
-             width	Number	否	播放器宽度,单位px.默认为屏幕宽度.
-             height	Number	否	播放器高度,单位px.默认为屏幕高度.
-             x	Number	否	播放器左边距,单位px.默认为0.
-             y	Number	否	播放器上边距,单位px.默认为0.
-             scrollWithWeb	Boolean	否	普通状态下播放器是否跟随网页滑动.默认为true.
-             isAutoEndFullScreen	Boolean	否	全屏状态下播放完成后是否自动切换为正常状态，
-             默认false，forceFullScreen参数为false时生效**/
-            var param = {
-                src:path,
-                startTime:0,
-                autoStart:true,
-                forceFullScreen:false,
-                showCloseButton:true,
-                showScaleButton:true,
-                // width:screen.width,
-                height:620,
-                x:0,
-                y:400,
-                scrollWithWeb:false,
-                isAutoEndFullScreen:true,
-            };
-            uexVideo.openPlayer(JSON.stringify(param));
-        });
-    },
-    /**关闭播放器
-     * @param func function,//回调
-     * func(info);
-     * var info = {
-    src:,//String	视频文件路径
-    currentTime:,//Number	被关闭时视频正在播放的时间.
-    }
-     * **/
-    closeVideo:function (func) {
-        verifyPlatform(function () {
-            if(func != null && func != undefined)
-            {
-                uexVideo.onPlayerClose = function (info) {
-
-                    if(func != undefined && func != null)
-                    {
-                        func(info);
-                    }
-
-                };
-            }
-
-            uexVideo.closePlayer();
-        });
-    },
-    /**选择视频
-     * @param callbackFunc function,//回调函数
-     * **/
-    pickVideo:function (callbackFunc) {
-
-        // alert("选择视频1");
-        var p = localStorage["videoPath"];
-        var path = p == undefined ? "file://" : p == '' ? "file://" : p == null ?  "file://" :  p == 'null' ? "file://" : p;
-
-        // });
-
-        // alert(JSON.stringify(path));
-        // uexFileMgr.explorer("/var/mobile/Containers/Data/Application/AA1557D4-27A7-4C60-9014-D673DAE9F9A2/Documents/apps",function(err,path){
-        uexFileMgr.explorer(path,function(err,path){
-            if(!err){
-
-                callbackFunc({data:[path]});
-            }else{
-                // alert(err);
-            }
-        });
-
-        /*alert("选择视频1:videoPicker");
-
-         uexVideo.videoPicker();
-
-             uexVideo.onVideoPickerClosed = function(data){
-                 /!**回传数据
-                  * var data = {
-            data:[
-             {
-                 src :,//选择视频的本地绝对路径
-             }
-             ...
-         ]
-         isCancelled:,是否为取消选择,取消为true,其他为false
-               }
-                  * **!/
-                 if(callbackFunc != undefined && data.isCancelled)
-                 {
-                     callbackFunc(data);
-                 }
-             };
-
-         uexFileMgr.explorer("/var/mobile/Containers/Data/Application",function(err,path){
-         // uexFileMgr.explorer("/var/mobile/Media/DCIM",function(err,path){
-             if(!err){
-                 alert(path);
-             }else{
-                 alert(err);
-             }
-         });
-
-         uexVideo.videoPicker();
-         uexVideo.onVideoPickerClosed = function(data){
-             alert("sdds:" + JSON.stringify(data));
-         };
-
-         alert("选择视频2");*/
-
-
-
-    },
-    pickVideo2:function (callbackFunc) {
-
-
-        //     appcan.ready(function() {
-        //         uexVideo.videoPicker();
-        //
-        //         uexVideo.onVideoPickerClosed = function(data){
-        //             /**回传数据
-        //              * var data = {
-        //    data:[
-        //     {
-        //         src :,//选择视频的本地绝对路径
-        //     }
-        //     ...
-        // ]
-        // isCancelled:,是否为取消选择,取消为true,其他为false
-        //       }
-        //              * **/
-        //             if(callbackFunc != undefined && data.isCancelled)
-        //             {
-        //                 callbackFunc(data);
-        //             }
-        //         };
-        //     });
-
-
-
-        // alert("选择视频2");
-
-    }
-}
 
 /**
  * 日历 (原生)
@@ -5053,248 +5225,10 @@ function isNumber(data) {
     }
 }
 
-/**
- * 打开文档
- * @param path 路径，//可以是数组，也可以是字符串；图片可以放多张，其他文件只允许一个
- * **/
-function openDocument(path,callbackFunc) {
-    verifyPlatform(function () {
-        if(!(path.constructor == Array))
-        {
-
-            path = [path];
-        }
-
-        var verfyStr = path[0];
-        if(typeof(verfyStr) == 'object')
-        {
-            verfyStr = verfyStr.src;
-        }
-
-        // alert(JSON.stringify(path));
-        if(verfyStr.indexOf('.png') > 0 || verfyStr.indexOf('.jpg') > 0)
-        {
-            // alert(path[0]);
-            ImgOperate.openBrowserImg(path,callbackFunc);
-        }
-        else if(verfyStr.indexOf('.mp4') > 0)
-        {
-            operateVideo.playVideo(verfyStr);
-        }
-        else if(verfyStr.indexOf('.mp3') > 0)
-        {
-            playAuto(0,verfyStr);
-        }
-        else if(verfyStr.indexOf('.htm') > 0)
-        {
-            var href = verfyStr;
-            var offsetHeight = document.getElementById("Header").offsetHeight;
-            if(getPlatform(2))
-            {
-                offsetHeight = offsetHeight / 2;
-            }
-
-            browerOperate.openPageBrower(href,offsetHeight);
-            if(callbackFunc != undefined && callbackFunc != null)
-            {
-                browerOperate.getPageTitle(function (title) {
-                    callbackFunc(title);
-                });
-
-            }
-
-        }
-        else
-        {
-            fileOperate.readerDocument(verfyStr,callbackFunc);
-        }
-    });
-}
-
-/**
- * 文件系统管理器
- * **/
-var fileMgrOperate = {
-    /**读取文件文件数据流
-     *@param path,//文件路径
-     * @param callbackFunc,//回调函数，callbackFunc(data);data为文件数据
-     * **/
-    readFileData:function (path,callbackFunc) {alert("readfile");
-        /**uexFileMgr.open(param)
-         * var param = {
-    path:,
-    mode:
-}
-         * path	String	是	文件路径.支持"wgt://","wgts://"、"file://"协议
-         mode	Number	是	打开设置,1-可读 2-可写 4-不存在时创建新文件,可累加,如1+2 = 3表示可读可写.
-         * **/
-        var file = uexFileMgr.open({
-            path: path,
-            mode: 3
-        });
-        // alert("file:" + file);
-
-        /**uexFileMgr.readFile(file,len,flag,cb)
-         *
-         参数名称	参数类型	是否必选	说明
-         file	String	是	uexFile对象file
-         len	Number	是	字节数,传-1表示读取全部内容
-         flag	Number	是	读取设置(详见下)
-         cb	Function	是	读取结束后,会调用此函数,函数参数说明见下
-         flag是一个枚举值,将所需设置对应的值传入即可.
-         同时需要多种设置时,应将设置对应的flag相加后再传入.
-         不需要这些额外设置时,flag请传0.**/
-        uexFileMgr.readFile(file, -1,0,function(error,data){alert("dd");
-            if(!error){
-                // alert(data);
-                if(callbackFunc != null && callbackFunc != undefined)
-                {
-                    callbackFunc(data);
-                }
-            }else{
-                alr2("读取失败!");
-            }
-
-        });
-
-    },
-}
-
-/**
- * 下载管理器，下载操作！
- * **/
-var downloaderMgr = {
-    /**配置信息
-     * **/
-    config:{
-        downloader:null,//下载器对象
-        savePath:"wgts://download/",//保存文件路径 "/widgets/download/文件名.jpg"
-        fileNameFixed:null,//若不为null则为使用固定文件名保存
-        // savePath:"wgts://download/img" + (new Date()).getTime() + ".jpg",//保存文件路径 "/widgets/download/文件名.jpg"
-        // savePath:"/private/var/mobile/Media/DCIM/img" + (new Date()).getTime() + ".jpg",//保存文件路径 "/widgets/download/文件名.jpg"
-    },
-    /**下载文件
-     * @param serverURL String,//下载文件的地址
-     * @param callbackFunc Function,//下载成功时，回调函数 callbackFunc(info)
-     * info = {
-         fileSize:fileSize,//	要下载的文件大小
-         percent:percent,//下载进度百分比 取值为0~100
-         status:status,//下载状态 0-下载中 1-下载完成 2-下载发生错误
-         filePath:filePath //下载文件的存储路径
-       }
-     * **/
-    downloadFile:function (serverURL,callbackFunc) {
-        verifyPlatform(function () {
-            downloaderMgr.config.downloader = uexDownloaderMgr.create();
-            if(!downloaderMgr.config.downloader){
-                toast("失败!");
-            }
-            else
-            {
-                var headJson = '{"Content-type":"application/json;charset=utf-8"}';
-                var savePath = null
-                if(downloaderMgr.config.fileNameFixed == null)
-                {
-                    savePath = downloaderMgr.config.savePath + serverURL.substring(serverURL.lastIndexOf('/') + 1);
-                }
-                else
-                {
-                    savePath = downloaderMgr.config.savePath + downloaderMgr.config.fileNameFixed;
-                }
-
-                if(downloaderMgr.config.fileNameFixed == null && fileOperate.isFileExistByPath(savePath))
-                {
-                    callbackFunc({
-                        filePath:savePath
-                    });
-                }
-                else
-                {
-                    // alert(serverURL);
-                    // alert(savePath);
-                    // uexDownloaderMgr.setHeaders(downloaderMgr.config.downloader, headJson);//设置请求头
-                    /**下载文件
-                     *
-                     参数名称	参数类型	是否必选	说明
-                     downloader	Object	是	由create接口创建的下载对象
-                     serverURL	String	是	服务器地址
-                     savePath	String	是	本地保存地址
-                     mode	Number	是	是否支持断点续传,0:不支持,1:支持
-                     cb	Function	是	下载进度回调,详见下**/
-                    uexDownloaderMgr.download(downloaderMgr.config.downloader,
-                        serverURL,savePath,1, function (fileSize,percent,status) {
-
-                            /**字段名称	类型	是否必选	说明
-                             * path	String	是	文件路径.支持"wgt://","wgts://"、"file://"协议
-                             mode	Number	是	打开设置,1-可读 2-可写 4-不存在时创建新文件,可累加,如1+2 = 3表示可读可写.
-                             * **/
-                            // var file = uexFileMgr.open({
-                            //     path: downloaderMgr.config.savePath,
-                            //     mode: 3
-                            // });
-                            // var filePath = uexFileMgr.getFilePath(file);//文件路径
-                            // // alert(path);
-
-                            /**参数名称	参数类型	是否必选	说明
-                             fileSize	Number	是	要下载的文件大小
-                             percent	Number	是	下载进度百分比 取值为0~100
-                             status	Number	是	下载状态 0-下载中 1-下载完成 2-下载发生错误**/
-                            var info = {
-                                fileSize:fileSize,
-                                percent:percent,
-                                status:status,
-                                filePath:savePath
-                            };
-
-                            switch (info.status) {
-                                case 0:
-                                    toast("下载进度" + info.percent + "%",{duration:0,
-                                        position:5,
-                                        type:1});
-                                    break;
-                                case 1:
-                                    appcan.window.closeToast();
-                                    // 下载完成
-                                    // downloaderMgr.cancelDownload(serverURL);
-                                    downloaderMgr.closeDownloader();
-                                    callbackFunc(info);
-
-                                    break;
-                                case 2:
-                                    toast("下载失败");
-                                    downloaderMgr.cancelDownload(serverURL);
-                                    downloaderMgr.closeDownloader();
-                                    break;
-                            }
 
 
-                        });
 
-                }
 
-            }
-        });
-    },
-    /**取消下载
-     * @param serverURL,//下载文件的地址
-     * **/
-    cancelDownload:function (serverURL) {
-        verifyPlatform(function () {
-            /**serverURL	String	是	服务器下载地址
-             clearMode	Number	否	默认为0.0-只取消此次下载任务,不清除已经下载的临时文件. 1-取消此次下载任务并清除已经下载的临时文件**/
-            uexDownloaderMgr.cancelDownload(serverURL,1);
-        });
-    },
-    /**关闭下载对象
-     * **/
-    closeDownloader:function () {
-        verifyPlatform(function () {
-            uexDownloaderMgr.closeDownloader(downloaderMgr.config.downloader);
-        });
-
-    },
-
-}
 
 /**
  * 额外按钮操作
