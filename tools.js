@@ -2,7 +2,8 @@
  * Created by Administrator on 2017/6/29.
  */
 
-/**封装的方法：
+/**
+ * 封装的方法：
  ScrollPositonOperate; //获取滚动页面的滚动位置，或滚动到指定位置
  toast ;//toast窗口的弹出和关闭（提示窗口）
  getPlatform; verifyPlatform2; verifyPlatform;//判断当前平台
@@ -16,11 +17,11 @@
  ImgOperate;//图片操作
  scaner；//扫描二维码
  takePicture；//拍照
- deviceOperate；//设配操作
- upOrDownrefresh；upOrDownRefreshOperate；swipeOperate；//上下左右拉监控
+ DeviceOperate；//设配操作
+ upOrDownrefresh；upOrDownRefreshOperate；SwipeOperate；//上下左右拉监控
  dateCtr；dateCtr2；dateCtrGetCurrentTime；//得到当前时间
  accountInfo;//获取账户信息
- setJsonData；jsonOperate;//保存数据
+ setJsonData；LocalStoreOperate;//保存数据
  getJsonData;// 获取json数据
  locationOperate; getLocation；//定位
  operateVideo；//操作视频
@@ -54,7 +55,6 @@
 
 var ONE_DAY_TIME = 86400000;//一天的时间，单位毫秒
 var videoRecordTimeConfig = undefined;//乐歆app录制视频配置时间长
-// var app_id = 1312721175;
 var app_id = 1324869682;
 var app_config = {
     app_id:app_id,//appid苹果官网appid
@@ -62,13 +62,10 @@ var app_config = {
     app_url:urlSets.urlAppleAPPDownload + "/id" + app_id + "?l=en&mt=8",//app下载地址，后台下载地址APP_URL 以后台为准；
 };//app配置信息
 var app_config_service = null;//app后台配置信息
-
-var versionTxt = IPConfig.isDebug ? IP == IPConfig.IP ? app_config.version  + " 运营 测试版" : app_config.version + " 门投 测试版" : IP == IPConfig.IP ? app_config.version  + " 运营版" : app_config.version + " 门投版";//当前显示版本号
-var taskIdOpen = "09034035-431c-471f-9a98-d27093f58561";//特殊任务类型，新店开业
 var userInfoData = null;//用户信息
 var isPush = true;//是否启动推送; true启动，false不启动
-var isDebug = true;//是否启动调试，true：启动；false:不启动
-var submitOnce = true;//提交一次，防止多次提交
+
+
 
 
 
@@ -832,7 +829,7 @@ var BrowerOperate = {
                     y != undefined && y != null ? params["y"] = y : '';
                     width != undefined && width != null ? params["width"] = width : '';
                     // height != undefined && height != null ? params["height"] = height
-                    //     : ((deviceOperate.config.orientation == 2 || deviceOperate.config.orientation == 8)
+                    //     : ((DeviceOperate.config.orientation == 2 || DeviceOperate.config.orientation == 8)
                     // && y != undefined && y != null) ? params["height"] = uexWindow.getHeight() - y
                     //     : '';
                     height != undefined && height != null ? params["height"] = height
@@ -1455,6 +1452,862 @@ var ImgOperate = {
     }
 }
 
+/**
+ * 上下左右滑动监控,上拉加载更多，下拉刷新等
+ * **/
+var SwipeOperate = {
+    config:{
+        isSlideBottom:true,//上下划底是否弹动，true是，反之不是
+        type:1,//	 Number	是	弹动的位置,0:顶端;1:底部
+        isForbiddenCloseSpringing:false,//是否禁止弹动，false:不禁止，true：禁止
+    },//配置数据
+    /**
+     * 下拉刷新,上拉加载 (原生)
+     * @param funcTop function,// 下拉刷新回调函数
+     * @param funcBottom function,//上拉加载回调函数
+     * @param callbackFuncPre function,//回到前台 回调函数
+     * @param callbackFuncBack function,//回到后台 回调函数
+     * @param isOrientation bool,//true屏幕方向切换 回调函数，false屏幕方向切换 不回调
+     * **/
+    upOrDownRefresh:function(funcTop, funcBottom,callbackFuncPre,callbackFuncBack, isOrientation) {
+
+        // document.getElementById("Header").style.paddingTop = "40px";
+
+        /**
+         * 上拉加载，下拉刷新
+         * window.uexOnload 窗口加载完毕后平台将触发此方法.类比window.onload方法,都是html页面加载完成 之后触发的方法.区别是,
+         * window.uexOnload方法会晚于window.onload方法,
+         * 原因是window.uexOnload需要等 待AppCan扩展对象,即'uex'前缀的对象初始化完毕.事件加载完成之后,可以安全的使用uex扩展对象.
+         *
+         *@param type	Number	是	当前加载完毕View的类型.0:主窗口或者浮动窗口(即代表自己);1:上个slibing;2:下个slibing
+         * **/
+
+        window.uexOnload = function(type)   {
+            if(DeviceOperate.config.onloadFunc != null)
+            {
+                DeviceOperate.config.onloadFunc();
+            }
+
+            DeviceOperate.orientationCge();
+            uexWindow.setBounce(0);
+
+            /*if(isOrientation != null && isOrientation != undefined)
+            {
+                DeviceOperate.orientationCge();
+            }*/
+
+            /*弹动状态改变的监听方法
+                 //      参数名称	参数类型	是否必选	说明
+                 //      type	Number	是	对应的部位值,0:网页顶端;1:网页底部
+                 //      state	Number	是	状态值,0:滑动事件开始;1:刷新事件开始;2:滑动事件结束
+                 //      * */
+            uexWindow.onBounceStateChange = function(type, state) {
+                // toast("onBounceStateChange");
+                setTimeout(function () {
+                    SwipeOperate.closeSpringingView();
+
+                },1000);
+
+            };
+
+            /**onSlipedDownward //滑到顶部的监听方法，内容超过一屏时有效
+             * **/
+            uexWindow.onSlipedUpEdge = function () {
+                uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
+                // toast("refresh:");
+                // SwipeOperate.startSringingView("",0);
+                if(funcTop != undefined && funcTop != null)
+                {
+                    funcTop();
+                }
+            }
+
+            if(callbackFuncPre != undefined)
+            {
+                //state: 状态值,0:回到前台;1:压入后台
+                uexWindow.onStateChange = function(state){
+
+                    /* setTimeout(function () {
+                         alert(LocalStoreOperate.getIsForceRefresh())
+                     });*/
+
+                    if(LocalStoreOperate.getIsRefresh() || LocalStoreOperate.getIsForceRefresh())
+                    {
+                        if(state == 0 && callbackFuncPre != undefined && callbackFuncPre != null)
+                        {
+                            // alert(0);
+                            callbackFuncPre(state);
+                            LocalStoreOperate.setIsRefresh(false);
+                            LocalStoreOperate.setIsForceRefresh(false);
+                        }
+                        else if(callbackFuncBack != undefined && callbackFuncBack != null)
+                        {
+                            callbackFuncBack(state);
+                        }
+
+
+                    }
+
+                }
+            }
+
+            if(funcBottom != undefined && funcBottom != null)
+            {
+
+                /**滑到底部的监听方法，内容超过一屏时有效
+                 * **/
+                uexWindow.onSlipedDownEdge = function () {
+                    if(SwipeOperate.config.isSlideBottom)
+                    {
+                        uexWindow.setBounce(1);//是否支持网页弹动1支持，0不支持
+                        SwipeOperate.startSringingView();
+                    }
+                    funcBottom();
+                    setTimeout(function () {
+                        if(SwipeOperate.config.isSlideBottom)
+                        {
+                            uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
+                        }
+                    },1200);
+                };
+            }
+
+            // 设置网页是否支持滑动的相关监听方法
+            var param = {
+                isSupport:true//(必选)true:支持;false:不支持.默认为false.
+            };
+
+            uexWindow.setIsSupportSlideCallback(param);
+
+
+        }
+
+        /*  /!**上拉加载，下拉刷新
+           * window.uexOnload 窗口加载完毕后平台将触发此方法.类比window.onload方法,都是html页面加载完成 之后触发的方法.区别是,
+           * window.uexOnload方法会晚于window.onload方法,
+           * 原因是window.uexOnload需要等 待AppCan扩展对象,即'uex'前缀的对象初始化完毕.事件加载完成之后,可以安全的使用uex扩展对象.
+           *
+           *@param type	Number	是	当前加载完毕View的类型.0:主窗口或者浮动窗口(即代表自己);1:上个slibing;2:下个slibing
+           * **!/
+          window.uexOnload = function(type) {
+              uexWindow.setBounce(1);//是否支持网页弹动1支持，0不支持
+              // uexWindow.setBounce("1");
+
+              /!*uexWindow.showBounceView(json)
+               uexWindow.showBounceView({
+               type:"1",
+               color:"rgba(15, 155, 155, 100)",
+               flag:1
+               });
+               参数名称	参数类型	是否必选	说明
+               type	Number	是	弹动的位置,0:顶端弹动;1:底部弹动
+               color	String	是	弹动显示部位的颜色值,内容不超过一屏时底部弹动内容不显示
+               flag	String	是	是否显示内容,1:显示;0:不显示
+               * *!/
+              // alert("funcTop   funcBottom");
+
+              // uexWindow.showBounceView(0, "rgba(255,255,255,0)", "1");
+              // uexWindow.showBounceView(1, "rgba(255,255,255,0)", "1");
+              // return;
+
+              //state: 状态值,0:回到前台;1:压入后台
+              uexWindow.onStateChange = function(state){
+                  // toast(state);
+                  // alert(state);
+                  if(state == 0 && callbackFuncPre != undefined)
+                  {
+                      // alert(0);
+                      callbackFuncPre(state);
+                  }
+                  else if(callbackFuncBack != undefined && callbackFuncBack != null)
+                  {
+                      callbackFuncPre(state);
+                  }
+                  else
+                  {
+                      // alert("ds");
+                  }
+                  // alert("ds22");
+                  // alert(state);
+                  // console.log(state);
+
+              }
+
+              var top = 0, btm = 1;
+              /!*弹动状态改变的监听方法
+               参数名称	参数类型	是否必选	说明
+               type	Number	是	对应的部位值,0:网页顶端;1:网页底部
+               state	Number	是	状态值,0:滑动事件开始;1:刷新事件开始;2:滑动事件结束
+               * *!/
+              uexWindow.onBounceStateChange = function(type, state) {
+                  // alert("sd");
+                  if (type == top && state == 2) { //顶部弹动
+                      uexWindow.resetBounceView(0);//resetBounceView //设置弹动效果结束后显示的网页;type 	Number	是	弹动的位置,0:顶端;1:底部
+                      funcTop();
+
+                  }
+                  if (type == btm && state == 2) { //底部弹动
+                      uexWindow.resetBounceView(1);//resetBounceView //设置弹动效果结束后显示的网页;type	 Number	是	弹动的位置,0:顶端;1:底部
+                      funcBottom();
+                  }
+
+              }
+
+              uexWindow.onSlipedDownEdge = function () {
+                  alert("sd");
+              }
+              // 设置网页是否支持滑动的相关监听方法
+              var param = {
+                  isSupport:true//(必选)true:支持;false:不支持.默认为false.
+              };
+              uexWindow.setIsSupportSlideCallback(param);
+
+
+              if (true) {
+                  // alert("funcTop setBounceParams");
+                  //uexWindow.setBounceParams(type,status)//设置弹动参数
+                  /!*type	Number	是	弹动的位置,0:顶端弹动;1:底部弹动
+                   status	JSON	是	json
+                   var status={
+                   "textColor":"#000",
+                   "imagePath":"res://refesh_icon.png",
+                   "levelText":"更新日期",
+                   "pullToReloadText":"拖动到底部",
+                   "releaseToReloadText":"释放回原处",
+                   "loadingText":"更新中..."
+                   };
+                   uexWindow.setBounceParams(0, status);
+
+                   imagePath	是	下拉状态小图标的路径,只支持res:// 格式.路径协议详见CONSTANT中Pathtypes
+                   textColor	是	展示下拉状态文字的颜色,如:"#ffffff"
+                   levelText	是	显示的二级文字,如:"上次更新时间:xxxxx".
+                   pullToReloadText	是	开始拖动直到超过刷新临界线之前显示的文字,如:"拖动刷新"
+                   releaseToReloadText	是	拖动超过刷新临界线后显示的文字,如:"释放刷新"
+                   loadingText	是	拖动超过刷新临界线并且释放拖动,进入刷新状态时显示的文字,如:"加载中,请稍等"
+                   loadingImagePath	否	等待状态loading小图标的路径,只支持res:// 格式(该字段为定制需求,默认无效)
+
+                   * *!/
+                  uexWindow.setBounceParams(
+                      '0',
+                      "{'pullToReloadText':'下拉','releaseToReloadText':'下拉','loadingText':'下拉'}"
+                  );
+                  // uexWindow.showBounceView(top, "rgba(255,255,255,0)", 1);
+                  // uexWindow.showBounceView(top, "rgba(15, 155, 155, 100)", 1);
+                  uexWindow.showBounceView({
+                      type:top,
+                      color:"rgba(255,255,255,1)",
+                      flag:1
+                  });
+                  //uexWindow.notifyBounceEvent(type,status) //注册接收弹动事件
+
+                  /!**弹动显示的部位,0:顶端;1:底部**!/
+                  // uexWindow.hiddenBounceView(0);
+
+                  // uexWindow.hideStatusBar();
+
+                  /!*
+                   参数名称	参数类型	是否必选	说明
+                   type	Number	是	弹动的位置,0:顶端弹动;1:底部弹动
+                   status	Number	是	是否调用onBounceStateChange方法,0:不调用;1:调用
+                   * *!/
+                  uexWindow.notifyBounceEvent(top, 1);
+              }
+
+
+
+              if (true) {
+                  // alert("funcBottom setBounceParams");
+                  uexWindow
+                      .setBounceParams(
+                          '1',
+                          "{'pullToReloadText':'加载更多','releaseToReloadText':'加载更多','loadingText':'加载中，请稍候'}");
+                  // uexWindow.showBounceView(btm, "rgba(255,255,255,0)", 1); //设置弹动位置及效果([1:显示内容;0:不显示])
+                  /!**R：
+                   红色值。正整数 | 百分数
+                   G：
+                   绿色值。正整数 | 百分数
+                   B：
+                   蓝色值。正整数 | 百分数
+                   A：
+                   Alpha透明度。取值0~1之间。
+                   * **!/
+                  uexWindow.showBounceView({
+                      type:btm,
+                      color:"rgba(255,255,255,1)",
+                      flag:1
+                  }); //设置弹动位置及效果([1:显示内容;0:不显示])
+                  uexWindow.notifyBounceEvent(btm, 1); //注册接收弹动事件([0:不接收onBounceStateChange方法回调;1:接收])
+              }
+          }*/
+
+    },
+    /**
+     * 向左滑动监听方法
+     * @param callbackFuncBack function,//回调函数
+     * **/
+    swipeLeftAndRight:function (callbackFuncLeft,callbackFuncRight) {
+        window.uexOnload = function(type) {
+
+            if(DeviceOperate.config.onloadFunc != null)
+            {
+                DeviceOperate.config.onloadFunc();
+            }
+
+            DeviceOperate.orientationCge();
+
+            // 设置网页是否支持滑动的相关监听方法
+            var param = {
+                isSupport:true//(必选)true:支持;false:不支持.默认为false.
+            };
+            uexWindow.setIsSupportSwipeCallback(param);
+            uexWindow.onSwipeRight = function(){
+                // alert("onSwipeRight");
+                // console.log('onSwipeRight');
+                if(callbackFuncRight != undefined)
+                {
+                    callbackFuncRight();
+                }
+            }
+            uexWindow.onSwipeLeft = function(){
+                // alert("onSwipeLeft");
+                // console.log('onSwipeLeft');
+                if(callbackFuncLeft != undefined)
+                {
+                    callbackFuncLeft();
+                }
+            }
+
+        }
+    },
+    /**
+     * 左右上下滑动监听事件(原生)
+     * @param funcTop function,// 下拉刷新回调函数
+     * @param funcBottom function,//上拉加载回调函数
+     * @param callbackFuncPre function,//回到前台 回调函数
+     * @param callbackFuncBack function,//回到后台 回调函数
+     * @param callbackFuncUp function,//向上滑动 回调函数
+     * @param callbackFuncDown function,//向下滑动 回调函数
+     * @param isOrientation bool,//true屏幕方向切换 回调函数，false屏幕方向切换 不回调
+     * **/
+    swipeLefRigUpDwn:function (funcTop, funcBottom,callbackFuncPre, callbackFuncBack, callbackFuncUp, callbackFuncDown,isOrientation) {
+        // document.getElementById("Header").style.paddingTop = "40px";
+
+        /**
+         * 上拉加载，下拉刷新
+         * window.uexOnload 窗口加载完毕后平台将触发此方法.类比window.onload方法,都是html页面加载完成 之后触发的方法.区别是,
+         * window.uexOnload方法会晚于window.onload方法,
+         * 原因是window.uexOnload需要等 待AppCan扩展对象,即'uex'前缀的对象初始化完毕.事件加载完成之后,可以安全的使用uex扩展对象.
+         *
+         *@param type	Number	是	当前加载完毕View的类型.0:主窗口或者浮动窗口(即代表自己);1:上个slibing;2:下个slibing
+         * **/
+        window.uexOnload = function(type) {
+
+            if(DeviceOperate.config.onloadFunc != null)
+            {
+                DeviceOperate.config.onloadFunc();
+            }
+
+            DeviceOperate.orientationCge();
+            uexWindow.setBounce(0);
+            // if(isOrientation != null && isOrientation != undefined)
+            // {
+            //     DeviceOperate.orientationCge();
+            // }
+
+            /**
+             弹动状态改变的监听方法
+             //      参数名称	参数类型	是否必选	说明
+             //      type	Number	是	对应的部位值,0:网页顶端;1:网页底部
+             //      state	Number	是	状态值,0:滑动事件开始;1:刷新事件开始;2:滑动事件结束
+             //      * */
+            uexWindow.onBounceStateChange = function(type, state) {
+                // toast("onBounceStateChange");
+                setTimeout(function () {
+                    SwipeOperate.closeSpringingView();
+                },1000);
+
+            };
+
+
+            if(callbackFuncPre != undefined && callbackFuncPre != null)
+            {
+                //state: 状态值,0:回到前台;1:压入后台
+                uexWindow.onStateChange = function(state){
+
+                    if(LocalStoreOperate.getIsRefresh() || LocalStoreOperate.getIsForceRefresh())
+                    {
+                        if(state == 0 && callbackFuncPre != undefined && callbackFuncPre != null)
+                        {
+                            // alert(0);
+                            callbackFuncPre(state);
+                            LocalStoreOperate.setIsRefresh(false);
+                            LocalStoreOperate.setIsForceRefresh(false);
+                        }
+                        else if(callbackFuncBack != undefined && callbackFuncBack != null)
+                        {
+                            callbackFuncBack(state);
+                        }
+
+                    }
+
+                }
+            }
+
+            if(funcBottom != undefined && funcBottom != null)
+            {
+
+                /**
+                 * 滑到底部的监听方法，内容超过一屏时有效
+                 * **/
+                uexWindow.onSlipedDownEdge = function () {
+                    if(SwipeOperate.config.isSlideBottom)
+                    {
+                        uexWindow.setBounce(1);//是否支持网页弹动1支持，0不支持
+                        SwipeOperate.startSringingView();
+                    }
+                    funcBottom();
+                    setTimeout(function () {
+                        if(SwipeOperate.config.isSlideBottom)
+                        {
+                            uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
+                        }
+                    },1200);
+                };
+            }
+            /**
+             * onSlipedDownward //滑到顶部的监听方法，内容超过一屏时有效
+             * **/
+            uexWindow.onSlipedUpEdge = function () {
+                uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
+                // toast("refresh:");
+                // SwipeOperate.startSringingView("",0);
+                if(funcTop != undefined && funcTop != null)
+                {
+                    funcTop();
+                }
+            }
+
+
+            if(callbackFuncUp != undefined && callbackFuncUp != null)
+            {
+                /**
+                 * 上滑的监听方法，内容超过一屏时有效
+                 * **/
+                uexWindow.onSlipedUpward = function () {
+                    callbackFuncUp();
+                }
+            }
+
+            if(callbackFuncDown != undefined && callbackFuncDown != null)
+            {
+                /**
+                 * 上滑的监听方法，内容超过一屏时有效
+                 * **/
+                uexWindow.onSlipedDownward = function () {
+                    callbackFuncDown();
+                }
+            }
+
+            // 设置网页是否支持滑动的相关监听方法
+            var param = {
+                isSupport:true//(必选)true:支持;false:不支持.默认为false.
+            };
+            uexWindow.setIsSupportSlideCallback(param);
+        }
+    },
+    /**
+     * 关闭弹动
+     * @param type number,//弹动的位置,0:顶端;1:底部
+     * **/
+    closeSpringingView:function (type) {
+        PlatformOperate.verifyPlatform(function () {
+            if(!SwipeOperate.config.isForbiddenCloseSpringing)
+            {
+                type = type == undefined ? SwipeOperate.config.type : 0;
+                uexWindow.resetBounceView(type);//resetBounceView //设置弹动效果结束后显示的网页;type	 Number	是	弹动的位置,0:顶端;1:底部
+            }
+
+        });
+    },
+    /**
+     * 开启弹动
+     *  @param showTxt string,//显示弹动文本
+     *  @param type number,//undefined,底部弹动，否则顶部弹动
+     * **/
+    startSringingView:function (showTxt,type) {
+        if(SwipeOperate.config.isSlideBottom)
+        {
+            /**
+             * 上拉加载，下拉刷新
+             * window.uexOnload 窗口加载完毕后平台将触发此方法.类比window.onload方法,都是html页面加载完成 之后触发的方法.区别是,
+             * window.uexOnload方法会晚于window.onload方法,
+             * 原因是window.uexOnload需要等 待AppCan扩展对象,即'uex'前缀的对象初始化完毕.事件加载完成之后,可以安全的使用uex扩展对象.
+             *
+             *@param type	Number	是	当前加载完毕View的类型.0:主窗口或者浮动窗口(即代表自己);1:上个slibing;2:下个slibing
+             * **/
+            uexWindow.setBounce(1);//是否支持网页弹动1支持，0不支持
+
+            if(type == undefined)
+            {
+                SwipeOperate.config.type = 1;
+
+                showTxt = showTxt == undefined ? '加载更多' : showTxt;
+
+                var param = {
+                    textColor:"#000000",
+                    // "imagePath":"res://refesh_icon.png",
+                    levelText:'',
+                    pullToReloadText:showTxt,
+                    releaseToReloadText:showTxt,
+                    loadingText:showTxt
+                };
+
+                uexWindow.setBounceParams(1, param);
+                // uexWindow.showBounceView(btm, "rgba(255,255,255,0)", 1); //设置弹动位置及效果([1:显示内容;0:不显示])
+                /**R：
+                 红色值。正整数 | 百分数
+                 G：
+                 绿色值。正整数 | 百分数
+                 B：
+                 蓝色值。正整数 | 百分数
+                 A：
+                 Alpha透明度。取值0~1之间。
+                 * **/
+                // uexWindow.showBounceView({
+                //     type:"1",
+                //     // color:"rgba(255,255,255,100)",
+                //     color:"rgba(15, 155, 155, 100)",
+                //     flag:1
+                // }); //显示弹动效果([1:显示内容;0:不显示]),这个方法颜色设置无效
+                uexWindow.showBounceView(1,"#FFFFFF", 1);
+                // uexWindow.showBounceView(1,"rgba(15, 155, 155, 100)", 1);
+                // uexWindow.showBounceView("1","rgba(255,255,255, 100)", 1);//显示弹动效果([1:显示内容;0:不显示])
+                // uexWindow.showBounceView(top, "rgba(255,255,255,0)", 1);//显示弹动效果([1:显示内容;0:不显示])
+                uexWindow.notifyBounceEvent(1, 1); //注册接收弹动事件([0:不接收onBounceStateChange方法回调;1:接收])
+                // uexWindow.showBounceView("1","rgba(15, 155, 155, 100)", 1);
+
+            }
+            else
+            {
+                SwipeOperate.config.type = 0;
+
+                showTxt = showTxt == undefined ? '刷新' : showTxt;//alert("refresh:" + showTxt);
+
+                var param = {
+                    textColor:"#000000",
+                    // "imagePath":"res://refesh_icon.png",
+                    levelText:'',
+                    pullToReloadText:showTxt,
+                    releaseToReloadText:showTxt,
+                    loadingText:showTxt
+                };
+
+                uexWindow.setBounceParams(0, param);
+                // uexWindow.showBounceView(btm, "rgba(255,255,255,0)", 1); //设置弹动位置及效果([1:显示内容;0:不显示])
+                /**R：
+                 红色值。正整数 | 百分数
+                 G：
+                 绿色值。正整数 | 百分数
+                 B：
+                 蓝色值。正整数 | 百分数
+                 A：
+                 Alpha透明度。取值0~1之间。
+                 * **/
+                // uexWindow.showBounceView({
+                //     type:"1",
+                //     // color:"rgba(255,255,255,100)",
+                //     color:"rgba(15, 155, 155, 100)",
+                //     flag:1
+                // }); //显示弹动效果([1:显示内容;0:不显示]),这个方法颜色设置无效
+                uexWindow.showBounceView(0,"#FFFFFF", 1);
+                // uexWindow.showBounceView("1","rgba(255,255,255, 100)", 1);//显示弹动效果([1:显示内容;0:不显示])
+                // uexWindow.showBounceView(top, "rgba(255,255,255,0)", 1);//显示弹动效果([1:显示内容;0:不显示])
+                /**
+                 * **/
+                uexWindow.notifyBounceEvent(0, 1); //注册接收弹动事件([0:不接收onBounceStateChange方法回调;1:接收])
+                // uexWindow.showBounceView("1","rgba(15, 155, 155, 100)", 1);
+            }
+        }
+    },
+    /**
+     * 没有数据时，关闭弹动
+     * **/
+    closeSpringingViewInNoData:function () {
+        PlatformOperate.verifyPlatform(function () {
+            SwipeOperate.closeSpringingView();
+            SwipeOperate.startSringingView("没有数据了");
+        }) ;
+
+        // setTimeout(function () {
+        //     SwipeOperate.closeSpringingView();
+        // },1000);
+    },
+    /**
+     * 隐藏弹动效果
+     * @param number ;//是	弹动显示的部位,0:顶端;1:底部,默认为影藏底部
+     * **/
+    hiddenSpringingView:function (type) {
+        type = type == undefined ? SwipeOperate.config.type : 0;
+
+        /**type	Number	是	弹动显示的部位,0:顶端;1:底部
+         * **/
+        uexWindow.hiddenBounceView(type);
+    },
+    /**
+     * 设置网页是否支持滑动的相关监听方法
+     */
+    setIsSupportSlideCallback:function (bool) {
+        if(bool != true || bool != false)
+        {
+            bool = true;
+        }
+        // 设置网页是否支持滑动的相关监听方法
+        var param = {
+            isSupport:bool//(必选)true:支持;false:不支持.默认为false.
+        };
+        uexWindow.setIsSupportSlideCallback(param);
+    }
+};
+
+/**
+ * 上下左右滑动监控(JS)
+ * **/
+var SwipeOperateJS = {
+    /**
+     * 左右上下滑动监听事件(JS)
+     * @param callbackFuncUp function,//向上滑动 回调函数
+     * @param callbackFuncDown function,//向下滑动 回调函数
+     * @param callbackFuncLeft function,//向左滑动 回调函数
+     * @param callbackFuncRight function,//向右滑动 回调函数
+     * **/
+    swipeLefRigUpDwn:function (callbackFuncUp, callbackFuncDown,callbackFuncLeft, callbackFuncRight) {
+        var startx, starty,endx, endy;
+
+        /*//获得角度
+        function getAngle(angx, angy) {
+            return Math.atan2(angy, angx) * 180 / Math.PI;
+        };*/
+
+        /*//根据起点终点返回方向 1向上 2向下 3向左 4向右 0未滑动
+        function getDirection(startx, starty, endx, endy) {
+            var angx = endx - startx;
+            var angy = endy - starty;
+            var result = 0;
+
+            //如果滑动距离太短
+            if (Math.abs(angx) < 2 && Math.abs(angy) < 2) {
+                return result;
+            }
+
+            var angle = getAngle(angx, angy);
+            if (angle >= -135 && angle <= -45) {
+                result = 1;
+            } else if (angle > 45 && angle < 135) {
+                result = 2;
+            } else if ((angle >= 135 && angle <= 180) || (angle >= -180 && angle < -135)) {
+                result = 3;
+            } else if (angle >= -45 && angle <= 45) {
+                result = 4;
+            }
+
+            return result;
+        }*/
+
+
+        //手指接触屏幕
+        document.addEventListener("touchstart", function(e) {
+            /*startx = e.touches[0].pageX;
+            starty = e.touches[0].pageY;*/
+            startx = e.changedTouches[0].pageX;
+            starty = e.changedTouches[0].pageY;
+        }, false);
+        //手指离开屏幕
+        document.addEventListener("touchend", function(e) {
+
+            endx = e.changedTouches[0].pageX;
+            endy = e.changedTouches[0].pageY;
+
+            // toast("starty:" + starty + "\n"  + "endy:" + endy);
+
+            /* var direction = getDirection(startx, starty, endx, endy);
+             switch (direction) {
+                 case 0:
+                     // alert("未滑动！");
+                     break;
+                 case 1:
+                     // alert("向上！")
+                     break;
+                 case 2:
+                     // alert("向下！")
+                     break;
+                 case 3:
+                     // alert("向左！")
+                     break;
+                 case 4:
+                     // alert("向右！")
+                     break;
+                 default:
+             }*/
+
+            if(endy < starty && callbackFuncUp != undefined)
+            {
+                callbackFuncUp();
+            }
+
+        }, false);
+    },
+    /**
+     * 上滑动监听事件(JS)
+     * @param callbackFuncUp function,//向上滑动 回调函数
+     * **/
+    swipeUp:function (callbackFuncUp) {
+        if(callbackFuncUp != undefined)
+        {
+            SwipeOperateJS.swipeLefRigUpDwn(callbackFuncUp);
+        }
+    },
+    /**
+     * 下拉刷新,上拉加载
+     * @param funcTop 下拉刷新回调函数
+     * @param funcBottom //上拉加载回调函数
+     * **/
+    upOrDownrefreshJS:function(funcTop, funcBottom) {
+        /**上拉加载，下拉刷新
+         * bounceType:弹动的类型,如果为多个请用数组
+         0: 是向下拖动
+         1: 是向上拖动
+         startPullCall:开始滑动时触发回调
+         downEndCall:上拉或者下拉超过边界执行回调
+         upEndCall:上拉或者下拉，超过边界之后，恢复最初状态执行回调
+         color:如果超过了该边界显示的背景颜色
+         imgSettings:如果超过了该边界，并且想要设置显示的内容包括图片文字则设置该参数
+         * appcan.frame.setBounce(bounceType,startPullCall,downEndCall,upEndCall,color,imgSettings) //设置上下弹动效果
+         * **/
+// alert("dsf");
+
+        /*{
+         bounceType:[0,1],
+         startPullCall:function(type){
+         alert("startPullCall");
+         },
+         downEndCall:function(type){
+         alert("downEndCall");
+         },
+         upEndCall:function(type){
+         alert("upEndCall");
+         if (type == 0) {
+         // load()
+         } else {
+         // loadMore();
+         }
+         },
+         color:'#EEEEEE',
+         imgSettings: {
+         "textColor":"#a1a1a1",
+         "pullToReloadText":"下拉刷新",
+         "releaseToReloadText":"释放刷新",
+         "loadingText":"加载中"
+         }
+         }
+         * */
+        appcan.frame.setBounce([0,1],function (data) {
+            alert("startPullCall");
+        },function (data) {
+            alert("downEndCall");
+        },function (data) {
+            alert("upEndCall");
+        },"#a1a1a1",{
+            "textColor":"#a1a1a1",
+            "pullToReloadText":"下拉刷新",
+            "releaseToReloadText":"释放刷新",
+            "loadingText":"加载中"
+        });
+
+    }
+};
+
+/**
+ * 时间/日期格式转化 使用时先引入moment.js
+ * **/
+var TimerOperate = {
+    /**
+     * 时间格式转化
+     * @param time ,需要转化的时间，format不传：time为undefined返回当天时间
+     * @param format string ,需要转化成的时间格式，若为null或undefined,返回时间戳
+     * @param isZero bool;//是否是返回0点0分0秒时间戳，非undefined:是，反之否
+     * return 返回format格式的时间或时间戳
+     * **/
+    timeFormatConvert:function(time,format,isZero) {
+        if(time == undefined  && format == undefined && isZero != undefined)
+        {
+            var date = new Date();
+            return date.getTime();
+        }
+        else if(time == undefined  && format == undefined)
+        {
+            var date = new Date();
+            return (new Date(date.getFullYear(),date.getMonth(), date.getDate(),0,0,0)).getTime();
+        }
+        else if(time == undefined  && format != undefined)
+        {
+            time = new Date().getTime();
+            return moment(time).format(format);
+        }
+        else if(time != undefined && time != null && format == undefined && isZero == undefined)
+        {
+            // return (new Date(time)).getTime();
+            // return moment(time).format();
+            return moment(time).toDate().getTime();
+        }
+        else if(time != null && time != '' && time != undefined && format != undefined && format != ''  && format != null)
+        {
+            // alert(time + "    " + format);
+            return moment(time).format(format);
+        }
+        else if(isZero != undefined)
+        {
+            var date = new Date(time);
+            return (new Date(date.getFullYear(),date.getMonth(), date.getDate(),0,0,0)).getTime();
+        }
+        else
+        {
+            return time == null || time == undefined ? '' : time;
+        }
+        /*alert("YYYY-MM-DD HH:mm:ss");
+         alert(moment("2017-07-21 14:25:30", "YYYY-MM-DD HH:mm:ss").format("YYYY-MM-DD HH:mm:ss"));
+         alert(moment("2017-07-21 14:25:30").format("YYYY-MM-DD HH:mm:ss"));
+         alert((new Date("2017-07-21 14:25:30")).getTime());
+         alert(moment((new Date("2017-07-21 14:25:30")).getTime()).format("YYYY-MM-DD HH:mm:ss"))
+         */
+    },
+    /**
+     * 获取传入时间当月的天数（公历）
+     * @param time int;//传入时间戳,不传则默认当前的时间
+     * return 获取传入时间当月的天数（公历）
+     * **/
+    daysNumberofMonth:function(time) {
+        var dateGL = time ? new Date(time) : new Date();
+        var MM1 = dateGL.getFullYear();
+        MM1 < 100 ? MM1 += 1900 : MM1;
+        var MM2 = MM1;
+        MM1 += "/" + (dateGL.getMonth() + 1);
+        MM2 += "/" + (dateGL.getMonth() + 2);
+        MM1 += "/1";
+        MM2 += "/1";
+        return parseInt((Date.parse(MM2) - Date.parse(MM1)) / 86400000);
+    },
+    /**
+     * 获取传入时间的年初到传入时间已经过了多少天（公历）
+     * @param time int;//传入时间戳,不传则默认当前的时间
+     * return 传入时间的年初到传入时间已经过了多少天
+     * **/
+    daysNumberofDate:function(time) {
+        var dateGL = time ? new Date(time) : new Date();
+        return parseInt((Date.parse(dateGL)
+            - Date.parse(dateGL.getFullYear() + "/1/1"))
+            / 86400000) + 1;
+    },
+};
 
 
 
@@ -1724,846 +2577,11 @@ function playAuto(ctrl,filePath) {
     });
 }
 
-/**
- * 下拉刷新,上拉加载 (原生)
- * @param funcTop function,// 下拉刷新回调函数
- * @param funcBottom function,//上拉加载回调函数
- * @param callbackFuncPre function,//回到前台 回调函数
- * @param callbackFuncBack function,//回到后台 回调函数
- * @param isOrientation bool,//true屏幕方向切换 回调函数，false屏幕方向切换 不回调
- * **/
-function upOrDownrefresh(funcTop, funcBottom,callbackFuncPre,callbackFuncBack, isOrientation) {
 
-    // document.getElementById("Header").style.paddingTop = "40px";
 
-    /**上拉加载，下拉刷新
-     * window.uexOnload 窗口加载完毕后平台将触发此方法.类比window.onload方法,都是html页面加载完成 之后触发的方法.区别是,
-     * window.uexOnload方法会晚于window.onload方法,
-     * 原因是window.uexOnload需要等 待AppCan扩展对象,即'uex'前缀的对象初始化完毕.事件加载完成之后,可以安全的使用uex扩展对象.
-     *
-     *@param type	Number	是	当前加载完毕View的类型.0:主窗口或者浮动窗口(即代表自己);1:上个slibing;2:下个slibing
-     * **/
 
-    window.uexOnload = function(type)   {
-        if(deviceOperate.config.onloadFunc != null)
-        {
-            deviceOperate.config.onloadFunc();
-        }
 
-        deviceOperate.orientationCge();
-        uexWindow.setBounce(0);
 
-        /*if(isOrientation != null && isOrientation != undefined)
-        {
-            deviceOperate.orientationCge();
-        }*/
-
-        /*弹动状态改变的监听方法
-             //      参数名称	参数类型	是否必选	说明
-             //      type	Number	是	对应的部位值,0:网页顶端;1:网页底部
-             //      state	Number	是	状态值,0:滑动事件开始;1:刷新事件开始;2:滑动事件结束
-             //      * */
-        uexWindow.onBounceStateChange = function(type, state) {
-            // toast("onBounceStateChange");
-            setTimeout(function () {
-                swipeOperate.closeSpringingView();
-
-            },1000);
-
-        };
-
-        /**onSlipedDownward //滑到顶部的监听方法，内容超过一屏时有效
-         * **/
-        uexWindow.onSlipedUpEdge = function () {
-            uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
-            // toast("refresh:");
-            // swipeOperate.startSringingView("",0);
-            if(funcTop != undefined && funcTop != null)
-            {
-                funcTop();
-            }
-        }
-
-        if(callbackFuncPre != undefined)
-        {
-            //state: 状态值,0:回到前台;1:压入后台
-            uexWindow.onStateChange = function(state){
-
-                /* setTimeout(function () {
-                     alert(jsonOperate.getIsForceRefresh())
-                 });*/
-
-                if(jsonOperate.getIsRefresh() || jsonOperate.getIsForceRefresh())
-                {
-                    if(state == 0 && callbackFuncPre != undefined && callbackFuncPre != null)
-                    {
-                        // alert(0);
-                        callbackFuncPre(state);
-                        jsonOperate.setIsRefresh(false);
-                        jsonOperate.setIsForceRefresh(false);
-                    }
-                    else if(callbackFuncBack != undefined && callbackFuncBack != null)
-                    {
-                        callbackFuncBack(state);
-                    }
-
-
-                }
-
-            }
-        }
-
-        if(funcBottom != undefined && funcBottom != null)
-        {
-
-            /**滑到底部的监听方法，内容超过一屏时有效
-             * **/
-            uexWindow.onSlipedDownEdge = function () {
-                if(swipeOperate.config.isSlideBottom)
-                {
-                    uexWindow.setBounce(1);//是否支持网页弹动1支持，0不支持
-                    swipeOperate.startSringingView();
-                }
-                funcBottom();
-                setTimeout(function () {
-                    if(swipeOperate.config.isSlideBottom)
-                    {
-                        uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
-                    }
-                },1200);
-            };
-        }
-
-        // 设置网页是否支持滑动的相关监听方法
-        var param = {
-            isSupport:true//(必选)true:支持;false:不支持.默认为false.
-        };
-
-        uexWindow.setIsSupportSlideCallback(param);
-
-
-    }
-
-    /*  /!**上拉加载，下拉刷新
-       * window.uexOnload 窗口加载完毕后平台将触发此方法.类比window.onload方法,都是html页面加载完成 之后触发的方法.区别是,
-       * window.uexOnload方法会晚于window.onload方法,
-       * 原因是window.uexOnload需要等 待AppCan扩展对象,即'uex'前缀的对象初始化完毕.事件加载完成之后,可以安全的使用uex扩展对象.
-       *
-       *@param type	Number	是	当前加载完毕View的类型.0:主窗口或者浮动窗口(即代表自己);1:上个slibing;2:下个slibing
-       * **!/
-      window.uexOnload = function(type) {
-          uexWindow.setBounce(1);//是否支持网页弹动1支持，0不支持
-          // uexWindow.setBounce("1");
-
-          /!*uexWindow.showBounceView(json)
-           uexWindow.showBounceView({
-           type:"1",
-           color:"rgba(15, 155, 155, 100)",
-           flag:1
-           });
-           参数名称	参数类型	是否必选	说明
-           type	Number	是	弹动的位置,0:顶端弹动;1:底部弹动
-           color	String	是	弹动显示部位的颜色值,内容不超过一屏时底部弹动内容不显示
-           flag	String	是	是否显示内容,1:显示;0:不显示
-           * *!/
-          // alert("funcTop   funcBottom");
-
-          // uexWindow.showBounceView(0, "rgba(255,255,255,0)", "1");
-          // uexWindow.showBounceView(1, "rgba(255,255,255,0)", "1");
-          // return;
-
-          //state: 状态值,0:回到前台;1:压入后台
-          uexWindow.onStateChange = function(state){
-              // toast(state);
-              // alert(state);
-              if(state == 0 && callbackFuncPre != undefined)
-              {
-                  // alert(0);
-                  callbackFuncPre(state);
-              }
-              else if(callbackFuncBack != undefined && callbackFuncBack != null)
-              {
-                  callbackFuncPre(state);
-              }
-              else
-              {
-                  // alert("ds");
-              }
-              // alert("ds22");
-              // alert(state);
-              // console.log(state);
-
-          }
-
-          var top = 0, btm = 1;
-          /!*弹动状态改变的监听方法
-           参数名称	参数类型	是否必选	说明
-           type	Number	是	对应的部位值,0:网页顶端;1:网页底部
-           state	Number	是	状态值,0:滑动事件开始;1:刷新事件开始;2:滑动事件结束
-           * *!/
-          uexWindow.onBounceStateChange = function(type, state) {
-              // alert("sd");
-              if (type == top && state == 2) { //顶部弹动
-                  uexWindow.resetBounceView(0);//resetBounceView //设置弹动效果结束后显示的网页;type 	Number	是	弹动的位置,0:顶端;1:底部
-                  funcTop();
-
-              }
-              if (type == btm && state == 2) { //底部弹动
-                  uexWindow.resetBounceView(1);//resetBounceView //设置弹动效果结束后显示的网页;type	 Number	是	弹动的位置,0:顶端;1:底部
-                  funcBottom();
-              }
-
-          }
-
-          uexWindow.onSlipedDownEdge = function () {
-              alert("sd");
-          }
-          // 设置网页是否支持滑动的相关监听方法
-          var param = {
-              isSupport:true//(必选)true:支持;false:不支持.默认为false.
-          };
-          uexWindow.setIsSupportSlideCallback(param);
-
-
-          if (true) {
-              // alert("funcTop setBounceParams");
-              //uexWindow.setBounceParams(type,status)//设置弹动参数
-              /!*type	Number	是	弹动的位置,0:顶端弹动;1:底部弹动
-               status	JSON	是	json
-               var status={
-               "textColor":"#000",
-               "imagePath":"res://refesh_icon.png",
-               "levelText":"更新日期",
-               "pullToReloadText":"拖动到底部",
-               "releaseToReloadText":"释放回原处",
-               "loadingText":"更新中..."
-               };
-               uexWindow.setBounceParams(0, status);
-
-               imagePath	是	下拉状态小图标的路径,只支持res:// 格式.路径协议详见CONSTANT中Pathtypes
-               textColor	是	展示下拉状态文字的颜色,如:"#ffffff"
-               levelText	是	显示的二级文字,如:"上次更新时间:xxxxx".
-               pullToReloadText	是	开始拖动直到超过刷新临界线之前显示的文字,如:"拖动刷新"
-               releaseToReloadText	是	拖动超过刷新临界线后显示的文字,如:"释放刷新"
-               loadingText	是	拖动超过刷新临界线并且释放拖动,进入刷新状态时显示的文字,如:"加载中,请稍等"
-               loadingImagePath	否	等待状态loading小图标的路径,只支持res:// 格式(该字段为定制需求,默认无效)
-
-               * *!/
-              uexWindow.setBounceParams(
-                  '0',
-                  "{'pullToReloadText':'下拉','releaseToReloadText':'下拉','loadingText':'下拉'}"
-              );
-              // uexWindow.showBounceView(top, "rgba(255,255,255,0)", 1);
-              // uexWindow.showBounceView(top, "rgba(15, 155, 155, 100)", 1);
-              uexWindow.showBounceView({
-                  type:top,
-                  color:"rgba(255,255,255,1)",
-                  flag:1
-              });
-              //uexWindow.notifyBounceEvent(type,status) //注册接收弹动事件
-
-              /!**弹动显示的部位,0:顶端;1:底部**!/
-              // uexWindow.hiddenBounceView(0);
-
-              // uexWindow.hideStatusBar();
-
-              /!*
-               参数名称	参数类型	是否必选	说明
-               type	Number	是	弹动的位置,0:顶端弹动;1:底部弹动
-               status	Number	是	是否调用onBounceStateChange方法,0:不调用;1:调用
-               * *!/
-              uexWindow.notifyBounceEvent(top, 1);
-          }
-
-
-
-          if (true) {
-              // alert("funcBottom setBounceParams");
-              uexWindow
-                  .setBounceParams(
-                      '1',
-                      "{'pullToReloadText':'加载更多','releaseToReloadText':'加载更多','loadingText':'加载中，请稍候'}");
-              // uexWindow.showBounceView(btm, "rgba(255,255,255,0)", 1); //设置弹动位置及效果([1:显示内容;0:不显示])
-              /!**R：
-               红色值。正整数 | 百分数
-               G：
-               绿色值。正整数 | 百分数
-               B：
-               蓝色值。正整数 | 百分数
-               A：
-               Alpha透明度。取值0~1之间。
-               * **!/
-              uexWindow.showBounceView({
-                  type:btm,
-                  color:"rgba(255,255,255,1)",
-                  flag:1
-              }); //设置弹动位置及效果([1:显示内容;0:不显示])
-              uexWindow.notifyBounceEvent(btm, 1); //注册接收弹动事件([0:不接收onBounceStateChange方法回调;1:接收])
-          }
-      }*/
-
-}
-
-/**
- * 下拉刷新,上拉加载 (原生)
- * @param funcTop 下拉刷新回调函数
- * @param funcBottom //上拉加载回调函数
- * **/
-var upOrDownRefreshOperate = {
-    upOrDownrefresh:function (funcTop, funcBottom,callbackFuncPre,callbackFuncBack) {
-        upOrDownrefresh(funcTop, funcBottom,callbackFuncPre,callbackFuncBack);
-    },
-    // 设置网页是否支持滑动的相关监听方法
-    setIsSupportSlideCallback:function (bool) {
-        if(bool != true || bool != false)
-        {
-            bool = true;
-        }
-        // 设置网页是否支持滑动的相关监听方法
-        var param = {
-            isSupport:bool//(必选)true:支持;false:不支持.默认为false.
-        };
-        uexWindow.setIsSupportSlideCallback(param);
-    }
-
-}
-
-/**
- * 上下左右滑动监控
- * **/
-var swipeOperate = {
-    config:{
-        isSlideBottom:true,//上下划底是否弹动，true是，反之不是
-        type:1,//	 Number	是	弹动的位置,0:顶端;1:底部
-        isForbiddenCloseSpringing:false,//是否禁止弹动，false:不禁止，true：禁止
-    },//配置数据
-    /**下拉刷新,上拉加载 (原生)
-     * @param funcTop 下拉刷新回调函数
-     * @param funcBottom //上拉加载回调函数
-     * **/
-    upOrDownrefresh:function (funcTop, funcBottom,callbackFuncPre,callbackFuncBack) {
-        upOrDownrefresh(funcTop, funcBottom,callbackFuncPre,callbackFuncBack);
-    },
-    /**向左滑动监听方法
-     * @param callbackFuncBack function,//回调函数
-     * **/
-    swipeLeftAndRight:function (callbackFuncLeft,callbackFuncRight) {
-        window.uexOnload = function(type) {
-
-            if(deviceOperate.config.onloadFunc != null)
-            {
-                deviceOperate.config.onloadFunc();
-            }
-
-            deviceOperate.orientationCge();
-
-            // 设置网页是否支持滑动的相关监听方法
-            var param = {
-                isSupport:true//(必选)true:支持;false:不支持.默认为false.
-            };
-            uexWindow.setIsSupportSwipeCallback(param);
-            uexWindow.onSwipeRight = function(){
-                // alert("onSwipeRight");
-                // console.log('onSwipeRight');
-                if(callbackFuncRight != undefined)
-                {
-                    callbackFuncRight();
-                }
-            }
-            uexWindow.onSwipeLeft = function(){
-                // alert("onSwipeLeft");
-                // console.log('onSwipeLeft');
-                if(callbackFuncLeft != undefined)
-                {
-                    callbackFuncLeft();
-                }
-
-            }
-
-        }
-    },
-    /**左右上下滑动监听事件(原生)
-     * @param funcTop function,// 下拉刷新回调函数
-     * @param funcBottom function,//上拉加载回调函数
-     * @param callbackFuncPre function,//回到前台 回调函数
-     * @param callbackFuncBack function,//回到后台 回调函数
-     * @param callbackFuncUp function,//向上滑动 回调函数
-     * @param callbackFuncDown function,//向下滑动 回调函数
-     * @param isOrientation bool,//true屏幕方向切换 回调函数，false屏幕方向切换 不回调
-     * **/
-    swipeLefRigUpDwn:function (funcTop, funcBottom,callbackFuncPre, callbackFuncBack, callbackFuncUp, callbackFuncDown,isOrientation) {
-        // document.getElementById("Header").style.paddingTop = "40px";
-
-        /**上拉加载，下拉刷新
-         * window.uexOnload 窗口加载完毕后平台将触发此方法.类比window.onload方法,都是html页面加载完成 之后触发的方法.区别是,
-         * window.uexOnload方法会晚于window.onload方法,
-         * 原因是window.uexOnload需要等 待AppCan扩展对象,即'uex'前缀的对象初始化完毕.事件加载完成之后,可以安全的使用uex扩展对象.
-         *
-         *@param type	Number	是	当前加载完毕View的类型.0:主窗口或者浮动窗口(即代表自己);1:上个slibing;2:下个slibing
-         * **/
-        window.uexOnload = function(type) {
-
-            if(deviceOperate.config.onloadFunc != null)
-            {
-                deviceOperate.config.onloadFunc();
-            }
-
-            deviceOperate.orientationCge();
-            uexWindow.setBounce(0);
-            // if(isOrientation != null && isOrientation != undefined)
-            // {
-            //     deviceOperate.orientationCge();
-            // }
-
-            /*弹动状态改变的监听方法
-   //      参数名称	参数类型	是否必选	说明
-   //      type	Number	是	对应的部位值,0:网页顶端;1:网页底部
-   //      state	Number	是	状态值,0:滑动事件开始;1:刷新事件开始;2:滑动事件结束
-   //      * */
-            uexWindow.onBounceStateChange = function(type, state) {
-                // toast("onBounceStateChange");
-                setTimeout(function () {
-                    swipeOperate.closeSpringingView();
-                },1000);
-
-            };
-
-
-            if(callbackFuncPre != undefined && callbackFuncPre != null)
-            {
-                //state: 状态值,0:回到前台;1:压入后台
-                uexWindow.onStateChange = function(state){
-
-                    if(jsonOperate.getIsRefresh() || jsonOperate.getIsForceRefresh())
-                    {
-                        if(state == 0 && callbackFuncPre != undefined && callbackFuncPre != null)
-                        {
-                            // alert(0);
-                            callbackFuncPre(state);
-                            jsonOperate.setIsRefresh(false);
-                            jsonOperate.setIsForceRefresh(false);
-                        }
-                        else if(callbackFuncBack != undefined && callbackFuncBack != null)
-                        {
-                            callbackFuncBack(state);
-                        }
-
-                    }
-
-                }
-            }
-
-            if(funcBottom != undefined && funcBottom != null)
-            {
-
-                /**滑到底部的监听方法，内容超过一屏时有效
-                 * **/
-                uexWindow.onSlipedDownEdge = function () {
-                    if(swipeOperate.config.isSlideBottom)
-                    {
-                        uexWindow.setBounce(1);//是否支持网页弹动1支持，0不支持
-                        swipeOperate.startSringingView();
-                    }
-                    funcBottom();
-                    setTimeout(function () {
-                        if(swipeOperate.config.isSlideBottom)
-                        {
-                            uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
-                        }
-                    },1200);
-                };
-            }
-            /**onSlipedDownward //滑到顶部的监听方法，内容超过一屏时有效
-             * **/
-            uexWindow.onSlipedUpEdge = function () {
-                uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
-                // toast("refresh:");
-                // swipeOperate.startSringingView("",0);
-                if(funcTop != undefined && funcTop != null)
-                {
-                    funcTop();
-                }
-            }
-
-
-            if(callbackFuncUp != undefined && callbackFuncUp != null)
-            {
-                /**上滑的监听方法，内容超过一屏时有效
-                 * **/
-                uexWindow.onSlipedUpward = function () {
-                    callbackFuncUp();
-                }
-            }
-
-            if(callbackFuncDown != undefined && callbackFuncDown != null)
-            {
-                /**上滑的监听方法，内容超过一屏时有效
-                 * **/
-                uexWindow.onSlipedDownward = function () {
-                    callbackFuncDown();
-                }
-            }
-
-            // 设置网页是否支持滑动的相关监听方法
-            var param = {
-                isSupport:true//(必选)true:支持;false:不支持.默认为false.
-            };
-            uexWindow.setIsSupportSlideCallback(param);
-        }
-    },
-    /**关闭弹动
-     * @param type number,//弹动的位置,0:顶端;1:底部
-     * **/
-    closeSpringingView:function (type) {
-        verifyPlatform(function () {
-            if(!swipeOperate.config.isForbiddenCloseSpringing)
-            {
-                type = type == undefined ? swipeOperate.config.type : 0;
-                uexWindow.resetBounceView(type);//resetBounceView //设置弹动效果结束后显示的网页;type	 Number	是	弹动的位置,0:顶端;1:底部
-            }
-
-        });
-    },
-    /**开启弹动
-     *  @param showTxt string,//显示弹动文本
-     *  @param type number,//undefined,底部弹动，否则顶部弹动
-     * **/
-    startSringingView:function (showTxt,type) {
-        if(swipeOperate.config.isSlideBottom)
-        {
-            /**上拉加载，下拉刷新
-             * window.uexOnload 窗口加载完毕后平台将触发此方法.类比window.onload方法,都是html页面加载完成 之后触发的方法.区别是,
-             * window.uexOnload方法会晚于window.onload方法,
-             * 原因是window.uexOnload需要等 待AppCan扩展对象,即'uex'前缀的对象初始化完毕.事件加载完成之后,可以安全的使用uex扩展对象.
-             *
-             *@param type	Number	是	当前加载完毕View的类型.0:主窗口或者浮动窗口(即代表自己);1:上个slibing;2:下个slibing
-             * **/
-            uexWindow.setBounce(1);//是否支持网页弹动1支持，0不支持
-
-            if(type == undefined)
-            {
-                swipeOperate.config.type = 1;
-
-                showTxt = showTxt == undefined ? '加载更多' : showTxt;
-
-                var param = {
-                    textColor:"#000000",
-                    // "imagePath":"res://refesh_icon.png",
-                    levelText:'',
-                    pullToReloadText:showTxt,
-                    releaseToReloadText:showTxt,
-                    loadingText:showTxt
-                };
-
-                uexWindow.setBounceParams(1, param);
-                // uexWindow.showBounceView(btm, "rgba(255,255,255,0)", 1); //设置弹动位置及效果([1:显示内容;0:不显示])
-                /**R：
-                 红色值。正整数 | 百分数
-                 G：
-                 绿色值。正整数 | 百分数
-                 B：
-                 蓝色值。正整数 | 百分数
-                 A：
-                 Alpha透明度。取值0~1之间。
-                 * **/
-                // uexWindow.showBounceView({
-                //     type:"1",
-                //     // color:"rgba(255,255,255,100)",
-                //     color:"rgba(15, 155, 155, 100)",
-                //     flag:1
-                // }); //显示弹动效果([1:显示内容;0:不显示]),这个方法颜色设置无效
-                uexWindow.showBounceView(1,"#FFFFFF", 1);
-                // uexWindow.showBounceView(1,"rgba(15, 155, 155, 100)", 1);
-                // uexWindow.showBounceView("1","rgba(255,255,255, 100)", 1);//显示弹动效果([1:显示内容;0:不显示])
-                // uexWindow.showBounceView(top, "rgba(255,255,255,0)", 1);//显示弹动效果([1:显示内容;0:不显示])
-                /**
-                 * **/
-                uexWindow.notifyBounceEvent(1, 1); //注册接收弹动事件([0:不接收onBounceStateChange方法回调;1:接收])
-                // uexWindow.showBounceView("1","rgba(15, 155, 155, 100)", 1);
-
-            }
-            else
-            {
-                swipeOperate.config.type = 0;
-
-                showTxt = showTxt == undefined ? '刷新' : showTxt;//alert("refresh:" + showTxt);
-
-                var param = {
-                    textColor:"#000000",
-                    // "imagePath":"res://refesh_icon.png",
-                    levelText:'',
-                    pullToReloadText:showTxt,
-                    releaseToReloadText:showTxt,
-                    loadingText:showTxt
-                };
-
-                uexWindow.setBounceParams(0, param);
-                // uexWindow.showBounceView(btm, "rgba(255,255,255,0)", 1); //设置弹动位置及效果([1:显示内容;0:不显示])
-                /**R：
-                 红色值。正整数 | 百分数
-                 G：
-                 绿色值。正整数 | 百分数
-                 B：
-                 蓝色值。正整数 | 百分数
-                 A：
-                 Alpha透明度。取值0~1之间。
-                 * **/
-                // uexWindow.showBounceView({
-                //     type:"1",
-                //     // color:"rgba(255,255,255,100)",
-                //     color:"rgba(15, 155, 155, 100)",
-                //     flag:1
-                // }); //显示弹动效果([1:显示内容;0:不显示]),这个方法颜色设置无效
-                uexWindow.showBounceView(0,"#FFFFFF", 1);
-                // uexWindow.showBounceView("1","rgba(255,255,255, 100)", 1);//显示弹动效果([1:显示内容;0:不显示])
-                // uexWindow.showBounceView(top, "rgba(255,255,255,0)", 1);//显示弹动效果([1:显示内容;0:不显示])
-                /**
-                 * **/
-                uexWindow.notifyBounceEvent(0, 1); //注册接收弹动事件([0:不接收onBounceStateChange方法回调;1:接收])
-                // uexWindow.showBounceView("1","rgba(15, 155, 155, 100)", 1);
-            }
-
-
-
-        }
-    },
-    /**没有数据时，关闭弹动
-     * **/
-    closeSpringingViewInNoData:function () {
-        verifyPlatform(function () {
-            swipeOperate.closeSpringingView();
-            swipeOperate.startSringingView("没有数据了");
-        }) ;
-
-        // setTimeout(function () {
-        //     swipeOperate.closeSpringingView();
-        // },1000);
-    },
-    /**隐藏弹动效果
-     * @param number ;//是	弹动显示的部位,0:顶端;1:底部,默认为影藏底部
-     * **/
-    hiddenSpringingView:function (type) {
-        type = type == undefined ? swipeOperate.config.type : 0;
-
-        /**type	Number	是	弹动显示的部位,0:顶端;1:底部
-         * **/
-        uexWindow.hiddenBounceView(type);
-    }
-};
-
-/**
- * 上下左右滑动监控(JS)
- * **/
-var swipeOperateJS = {
-    /**左右上下滑动监听事件(JS)
-     * @param callbackFuncUp function,//向上滑动 回调函数
-     * @param callbackFuncDown function,//向下滑动 回调函数
-     * @param callbackFuncLeft function,//向左滑动 回调函数
-     * @param callbackFuncRight function,//向右滑动 回调函数
-     * **/
-    swipeLefRigUpDwn:function (callbackFuncUp, callbackFuncDown,callbackFuncLeft, callbackFuncRight) {
-        var startx, starty,endx, endy;
-
-        /*//获得角度
-        function getAngle(angx, angy) {
-            return Math.atan2(angy, angx) * 180 / Math.PI;
-        };*/
-
-        /*//根据起点终点返回方向 1向上 2向下 3向左 4向右 0未滑动
-        function getDirection(startx, starty, endx, endy) {
-            var angx = endx - startx;
-            var angy = endy - starty;
-            var result = 0;
-
-            //如果滑动距离太短
-            if (Math.abs(angx) < 2 && Math.abs(angy) < 2) {
-                return result;
-            }
-
-            var angle = getAngle(angx, angy);
-            if (angle >= -135 && angle <= -45) {
-                result = 1;
-            } else if (angle > 45 && angle < 135) {
-                result = 2;
-            } else if ((angle >= 135 && angle <= 180) || (angle >= -180 && angle < -135)) {
-                result = 3;
-            } else if (angle >= -45 && angle <= 45) {
-                result = 4;
-            }
-
-            return result;
-        }*/
-
-
-        //手指接触屏幕
-        document.addEventListener("touchstart", function(e) {
-            /*startx = e.touches[0].pageX;
-            starty = e.touches[0].pageY;*/
-            startx = e.changedTouches[0].pageX;
-            starty = e.changedTouches[0].pageY;
-        }, false);
-        //手指离开屏幕
-        document.addEventListener("touchend", function(e) {
-
-            endx = e.changedTouches[0].pageX;
-            endy = e.changedTouches[0].pageY;
-
-            // toast("starty:" + starty + "\n"  + "endy:" + endy);
-
-            /* var direction = getDirection(startx, starty, endx, endy);
-             switch (direction) {
-                 case 0:
-                     // alert("未滑动！");
-                     break;
-                 case 1:
-                     // alert("向上！")
-                     break;
-                 case 2:
-                     // alert("向下！")
-                     break;
-                 case 3:
-                     // alert("向左！")
-                     break;
-                 case 4:
-                     // alert("向右！")
-                     break;
-                 default:
-             }*/
-
-            if(endy < starty && callbackFuncUp != undefined)
-            {
-                callbackFuncUp();
-            }
-
-        }, false);
-    },
-    /**上滑动监听事件(JS)
-     * @param callbackFuncUp function,//向上滑动 回调函数
-     * **/
-    swipeUp:function (callbackFuncUp) {
-        if(callbackFuncUp != undefined)
-        {
-            swipeOperateJS.swipeLefRigUpDwn(callbackFuncUp);
-        }
-    }
-};
-
-/**
- * 下拉刷新,上拉加载
- * @param funcTop 下拉刷新回调函数
- * @param funcBottom //上拉加载回调函数
- * **/
-function upOrDownrefreshJS(funcTop, funcBottom) {
-    /**上拉加载，下拉刷新
-     * bounceType:弹动的类型,如果为多个请用数组
-     0: 是向下拖动
-     1: 是向上拖动
-     startPullCall:开始滑动时触发回调
-     downEndCall:上拉或者下拉超过边界执行回调
-     upEndCall:上拉或者下拉，超过边界之后，恢复最初状态执行回调
-     color:如果超过了该边界显示的背景颜色
-     imgSettings:如果超过了该边界，并且想要设置显示的内容包括图片文字则设置该参数
-     * appcan.frame.setBounce(bounceType,startPullCall,downEndCall,upEndCall,color,imgSettings) //设置上下弹动效果
-     * **/
-// alert("dsf");
-
-    /*{
-     bounceType:[0,1],
-     startPullCall:function(type){
-     alert("startPullCall");
-     },
-     downEndCall:function(type){
-     alert("downEndCall");
-     },
-     upEndCall:function(type){
-     alert("upEndCall");
-     if (type == 0) {
-     // load()
-     } else {
-     // loadMore();
-     }
-     },
-     color:'#EEEEEE',
-     imgSettings: {
-     "textColor":"#a1a1a1",
-     "pullToReloadText":"下拉刷新",
-     "releaseToReloadText":"释放刷新",
-     "loadingText":"加载中"
-     }
-     }
-     * */
-    appcan.frame.setBounce([0,1],function (data) {
-        alert("startPullCall");
-    },function (data) {
-        alert("downEndCall");
-    },function (data) {
-        alert("upEndCall");
-    },"#a1a1a1",{
-        "textColor":"#a1a1a1",
-        "pullToReloadText":"下拉刷新",
-        "releaseToReloadText":"释放刷新",
-        "loadingText":"加载中"
-    });
-
-}
-
-/**
- * 得到当前时间的时间戳
- * @param time,//传入的时间戳
- * @param tag，//标识，0，返回当前的0时0分0秒时间戳，1返回当前的时间戳 ，2按格式返回日期,3获取本月的天数
- * @param format,//返回数据的格式
- * **/
-function dateCtr(time,tag,format) {
-    var date = new Date();
-    // alert("time: " + time + "\ntag:" + tag + "\nformat:" + format);
-    switch (tag){
-        case 0:
-        {
-            var dt = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-            return dt.getTime();
-            break;
-        }
-        case 1:
-        {
-            return date.getTime();
-            break;
-        }
-        case 2:
-        {
-            return moment(time).format(format);
-            break;
-        }
-        case 3:
-        {
-            var time = (new Date(date.getFullYear(),date.getMonth() + 1,1,0,0,0)).getTime() - ONE_DAY_TIME;
-            return (new Date(time)).getDate();
-            break;
-        }
-        default :
-        {
-            return dateCtr(null,1);
-        }
-    }
-}
-
-/**
- * 得到当前时间的时间戳
- * @param time,//传入的时间戳
- * @param tag，//标识，0，返回当前的0时0分0秒时间戳，1返回当前的时间戳 ，2按格式返回日期,3获取本月的天数
- * @param format,//返回数据的格式
- * **/
-// alert(moment((new Date()).getTime()).format("MM月DD日"));
-function dateCtr2(tag,time,format){
-    return dateCtr(time,tag,format);
-}
-
-/**
- * 得到当前时间
- * **/
-function dateCtrGetCurrentTime(format) {
-    var date = new Date();
-    return dateCtr(date.getTime(),2,format);
-}
 
 
 /**
@@ -4088,146 +4106,7 @@ function asyncLoaded(url, callBack) { /*url为js的链接，callBack为url的js�
     // return "jj";
 }
 
-/**
- * 时间控制器
- * **/
-function timerOperate(){
-    /* var operate ={
-         //配置数据的对象
-         config:{
-             timerCtrl:0,//控制计时器是否关闭，0，打开；1关闭
-             intervalTimerClear:null,//循环控制器对象
-         },
-         /!**计时器 若为startTime 和 endTimeJson 为null，取当前时间,并且callBack返回当前时间，
-          *  endTimeJson 为null，若为startTime 不为null，取当前时间,并且以当前时间为基础一直往后计时
-          * @param startTime int ,传入时间戳，开始计时时间，
-          *  @param endTimeJson json ,//若为null，一直计时
-          *  endTimeJson = {
-          *  type:int,//时间类型，0传入的endTime为时间戳（即在指定时间停止计时），1传入endType为时间数（单位秒），即在多少秒后停止计时
-          *  endTime：int，//时间
-          *  }
-          *  @param interval int ,间隔时间，单位毫秒，即多长时间调用一次回调函数
-          *  @param callBack function ,回调函数,回传，一个计时器对象timerObj，一个date对象，callBack = function(timerObj，date);
-          * **!/
-         timer:function timer(startTime,endTimeJson, interval, callBack) {
 
-             var sameNull = -1;
-             if(endTimeJson == null || endTimeJson == undefined || endTimeJson == "null" || endTimeJson == "undefined")
-             {
-                 // endTime = (new Date()).getTime();
-                 endTimeJson = null;
-             }
-             if((startTime == null || startTime == undefined || startTime == "null" || startTime == "undefined"))
-             {
-                 startTime = null;
-             }
-
-             if(startTime == null && endTimeJson == null)
-             {
-                 startTime = (new Date()).getTime();
-                 sameNull = 0;
-             }
-             else if(startTime != null && endTimeJson == null){
-                 startTime = (new Date()).getTime();
-                 sameNull = 1;
-             }
-
-             setTimeout(() => {
-                 var dd = new Date();
-                 // let createTime = data.rows.item(0).createTime;
-                 // var endTime = parseInt(data.rows.item(0).endTime);
-
-                 var curTime0 = new Date(dd.getFullYear(), dd.getMonth(), dd.getDate(), 0, 0, 0);//当天0点的时间戳
-
-                 var intervalTimerClear = setInterval(() => {
-
-                     if(operate.config.timerCtrl == 1)
-                     {
-                         clearInterval(intervalTimerClear);
-                     }
-
-                     var curTime = (new Date()).getTime();
-                     var sumTimeStart = curTime0 + (curTime - startTime);
-
-
-                     if(sameNull == 0)
-                     {
-                         callBack(operate,new Date());
-                     }
-                     else if(sameNull == 1){
-                         callBack(operate,(new Date(sumTimeStart)));
-                     }
-                     else
-                     {
-                         var seconds = (sumTimeStart - curTime0) / 1000;
-                         if (endTimeJson.type == 1) {
-                             if(seconds == endTimeJson.endTime)
-                             {
-                                 clearInterval(intervalTimerClear);
-                             }
-                             callBack(operate,(new Date(sumTimeStart)));
-                         }
-                         else
-                         {
-                             if(curTime == endTimeJson.endTime)
-                             {
-                                 clearInterval(intervalTimerClear);
-                             }
-                             callBack(operate,(new Date(sumTimeStart)));
-                         }
-
-                     }
-
-                 }, interval);
-
-                 operate.config.intervalTimerClear = intervalTimerClear;
-
-             }, 0);
-         }
-     };
-
-     return operate;*/
-}
-
-/**
- * 时间格式转化 使用时先引入moment.js
- * @param time ,需要转化的时间，format不传：time为undefined返回当天0点时间戳，time为null返回当时的时间戳
- * @param format string ,需要转化成的时间格式，若为null或undefined,返回时间戳
- * @param isZero bool;//是否是返回0点0分0秒时间戳，非undefined:是，反之否
- * return ，返回format格式的时间
- * **/
-function timeFormatConvert(time,format,isZero) {
-
-    if(time == undefined  && format == undefined)
-    {
-        var date = new Date();
-        return (new Date(date.getFullYear(),date.getMonth(), date.getDate(),0,0,0)).getTime();
-    }
-    else if(time != undefined && time != null && format == undefined && isZero == undefined)
-    {
-        return (new Date(time)).getTime();
-    }
-    else if(time != null && time != '' && time != undefined && format != undefined && format != ''  && format != null)
-    {
-        // alert(time + "    " + format);
-        return moment(time).format(format);
-    }
-    else if(isZero != undefined)
-    {
-        var date = new Date(time);
-        return (new Date(date.getFullYear(),date.getMonth(), date.getDate(),0,0,0)).getTime();
-    }
-    else
-    {
-        return time == null || time == undefined ? '' : time;
-    }
-    /*alert("YYYY-MM-DD HH:mm:ss");
-    alert(moment("2017-07-21 14:25:30", "YYYY-MM-DD HH:mm:ss").format("YYYY-MM-DD HH:mm:ss"));
-    alert(moment("2017-07-21 14:25:30").format("YYYY-MM-DD HH:mm:ss"));
-    alert((new Date("2017-07-21 14:25:30")).getTime());
-    alert(moment((new Date("2017-07-21 14:25:30")).getTime()).format("YYYY-MM-DD HH:mm:ss"))
-*/
-}
 
 /**
  * 极光推送 （原生）
@@ -4374,9 +4253,9 @@ var jPush = {
         // alert("SD");
         window.uexOnload = function(type){
 
-            if(deviceOperate.config.onloadFunc != null)
+            if(DeviceOperate.config.onloadFunc != null)
             {
-                deviceOperate.config.onloadFunc(isPush);
+                DeviceOperate.config.onloadFunc(isPush);
             }
 
             verifyPlatform(function () {
@@ -4566,62 +4445,7 @@ var jPush = {
     }
 }
 
-/**
- * 状态转化 数字 ==》 中文
- * **/
-function statusConvert(val) {
-    switch (val)
-    {
-        case '0' :
-        {
-            return "已关闭";//taskCheck 查看是否可以点评，缺是否点评数据  未点评显示
-        }
-        case '1' :
-        {
-            return "待审核";//taskCheck 查看是否可以点评，查看 通过、不通过
-        }
-        case '2' :
-        {
-            return "审核退回";//taskCheck 查看是否可以点评，下标选项卡消失
-        }
-        case '3' :
-        {
-            return "待执行";//改：taskCheck 不可以点评，标选项卡显示：取消和转派  （没有原形型）
-        }
-        case '4' :
-        {
-            return "执行中";//改：taskCheck 不可以点评，下标选项卡显示：取消和转派 （没有原形型）
-        }
-        case '5' :
-        {
-            return "未完成";//taskCheck 不可以点评，下标选项卡消失
-        }
-        case '6' :
-        {
-            return "待检查";//改：taskCheck 点击不通过显示点评框，没有评分；点击通过显示点评框，显示输入评分
-        }
-        case '7' :
-        {
-            return "转派中";//不可以点评，和待审核一样,多了转派人和转派原因 （缺原型）
-        }
-        case '8' :
-        {
-            return "取消中";//不可以点评，和待审核一样，多了取消原因（缺原型）
-        }
-        case '9' :
-        {
-            return "已取消";//不可以点评，taskCheck 下标选项卡消失
-        }
-        case '10' :
-        {
-            return "待评价";
-        }
-        default :
-        {
-            return val;
-        }
-    }
-}
+
 
 /**
  * 上下滚动，事件
@@ -6601,57 +6425,13 @@ var drawTableChart = {
     },
 }
 
-/**
- * 本地临时存储
- * **/
-var localStorageOperate = {
-    /**存储临时数据
-     * @param data ,//存储的数据
-     * **/
-    setDataTmp:function (data) {
-        appcan.locStorage.setVal("tempData",data);
-    },
-    /**获取临时存储的数据
-     * **/
-    getDataTmp:function () {
-        return appcan.locStorage.getVal("tempData");
-    }
-}
 
-// 任务类型
-function taskStatusConvert(status) {
-    switch (status)
-    {
-        // 1.巡店任务 2.出差任务 3.流程任务 4.回访任务 5.工作汇报 6.临时任务
-        case '1':
-        {
-            return '巡店任务';
-        }
-        case '2':
-        {
-            return '出差任务';
-        }
-        case '3':
-        {
-            return '流程任务';
-        }
-        case '4':
-        {
-            return '回访任务';
-        }
-        case '5':
-        {
-            return '工作汇报';
-        }
-        case '6':
-        {
-            return '临时任务';
-        }
-    }
-}
+
+
 
 var actionSheetOperate = {
-    /**底部隐藏菜单
+    /**
+     * 底部隐藏菜单
      * @param menuList function,//菜单数组名
      * @param callbackFunc function,//回调函数 callbackFunc(index),index是索引值
      * **/
@@ -6791,7 +6571,8 @@ var actionSheetOperate = {
           }
           uexPopoverMenu.openPopoverMenu(JSON.stringify(params));*/
     },
-    /**中央激活菜单
+    /**
+     * 中央激活菜单
      * @param title string;//头部显示名
      * @param btnList array;//按钮显示菜单列表
      * @param callbackFunc function;//点击回调函数，回传数组列地址
@@ -6833,38 +6614,7 @@ var actionSheetOperate = {
     }
 };
 
-var orderStoreOperate = {
-    /**订单添加
-     * orders json 或 array 产品
-     orders = {
-         id:'',//产品id
-         imgSrc:'',//产品图片
-         name:'',//产品名称
 
-       }
-
-     * **/
-    addOrder:function (orders) {
-        if(orders == null || orders == undefined)
-        {
-            orders = null;
-            appcan.locStorage.setVal("order",'null');
-            return;
-        }
-        else if(!(orders.constructor == Array))
-        {
-            orders = [orders];
-
-        }
-
-        appcan.locStorage.setVal("order",JSON.stringify(orders));
-
-    },
-    getOrder:function () {
-        var orders = appcan.locStorage.getVal("order");
-        return orders == 'null' ? null : JSON.parse(orders);
-    }
-};
 
 /**
  * 返回上一页刷新
@@ -6876,15 +6626,15 @@ function refreshBack(callbackFuncPre,callbackFuncBack, viewModel) {
         //state: 状态值,0:回到前台;1:压入后台
         uexWindow.onStateChange = function(state){
             setTimeout(function () {
-                // alert(jsonOperate.getIsForceRefresh())
+                // alert(LocalStoreOperate.getIsForceRefresh())
                 // alert("state:" + state);
-                if(jsonOperate.getIsRefresh() || jsonOperate.getIsForceRefresh())
+                if(LocalStoreOperate.getIsRefresh() || LocalStoreOperate.getIsForceRefresh())
                 {
                     if(state == 0 && callbackFuncPre != undefined)
                     {
                         callbackFuncPre(state);
-                        jsonOperate.setIsRefresh(false);
-                        jsonOperate.setIsForceRefresh(false);
+                        LocalStoreOperate.setIsRefresh(false);
+                        LocalStoreOperate.setIsForceRefresh(false);
                     }
                     else if(callbackFuncBack != undefined && callbackFuncBack != null)
                     {
@@ -7130,56 +6880,16 @@ var listViewOperate = {
     }
 }
 
-/**
- * 内容距离顶部的距离（内容div相对于绝对定位）
- * @param  id,//内容部分元素id
- * **/
-function headTop(id){
 
-    setTimeout(function () {
-        var headH=$("#Header").height();
-        // console.log("header部分的高度是 ：" + headH);
-        // alert(headH);
-        $(id).css("top",headH);//内容元素距离顶部的距离为header的高度
-
-        // var FootH = $("#Footer").height();
-        // console.log("footer部分的高度是 ：" + FootH);
-        // $(id).css("bottom",FootH);
-    },100);
-    // },0);
-}
-
-/**
- * 获取设备高度
- * @param  #body, string //body部分 id
- * **/
-function hei(id){
-    // 获取页面初始高度
-    var hei=$(id).height();
-    $(id).css('height',hei);
-    // console.log('设备高度是： '+hei);
-}
-
-// 获取各部分高度
-/*
-function getHeight(id,id2,id3,id4) {
-    var hei = $(id).height();
-    var headhei = $(id2).height();
-    var foothei = $(id3).height();
-    var conthei = $(id4).height() = hei - headhei - foothei;
-    $(id4).css({"position":"fixed","top":headhei,"overflow-y":"scroll"});
-}
-*/
-
-/**
- * 图片不存在显示默认图片
- * @param imgPath string;//图片路径
- * **/
-function nofind(imgPath){
-    var img = event.srcElement;
-    img.src = imgPath == undefined ? "../../images/nimg.jpg" : imgPath;
-    img.onerror = null; //控制不要一直跳动
-}
+// /**
+//  * 图片不存在显示默认图片
+//  * @param imgPath string;//图片路径
+//  * **/
+// function nofind(imgPath){
+//     var img = event.srcElement;
+//     img.src = imgPath == undefined ? "../../images/nimg.jpg" : imgPath;
+//     img.onerror = null; //控制不要一直跳动
+// }
 
 /**
  * 标签位置变化处理，防止软键盘弹出标签下移； 使用场景：当输入框在顶部，posion属性是fixed时调用
@@ -7225,285 +6935,9 @@ function fixedChange(tagIdList) {
 
 }
 
-/***
- * 获取任务类型名
- * @param tag string;//任务类型名的编码
- * */
-function getTaskTypeTitle(tag){
-    /** map.put("1", "巡店任务");
-     map.put("2", "出差任务");
-     map.put("3", "流程任务");
-     map.put("4", "回访任务");
-     map.put("5", "工作汇报");
-     map.put("6", "临时任务");4
-     */
-    switch (tag)
-    {
-        case '1':
-        {
-            return "巡店任务";
-        }
-        case '2':
-        {
-            return "出差任务";
-        }
-        case '3':
-        {
-            return "流程任务";
-        }
-        case '4':
-        {
-            return "回访任务";
-        }
-        case '5':
-        {
-            return "工作汇报";
-        }
-        case '6':
-        {
-            return "临时任务";
-        }
 
-    }
-}
 
-/**
- * 步骤跳转
- * @param tag ,//跳转的步骤值
- * @param data ，//跳转时传递的数据，可为空或不传
- * **/
-function stepEnter(tag,data) {
 
-    /*map.put("App测试巡店-新店下店-门店签到", "101");
-     map.put("App测试巡店-新店下店-找店", "102");
-     map.put("App测试巡店-新店下店-市调", "103");
-     map.put("App测试巡店-新店下店-讲解", "104");
-     map.put("App测试巡店-新店下店-规划", "105");
-     map.put("App测试巡店-新店下店-图纸", "106");
-     map.put("App测试巡店-新店下店-跟进事项", "107");
-     map.put("App测试巡店-新店下店-签退", "108");
-     map.put("App测试巡店-新店下店-酒店签到", "109"); // 预留
-
-     map.put("App测试巡店-新店开业-门店签到", "201");
-     map.put("App测试巡店-新店开业-沟通确认", "202");
-     map.put("App测试巡店-新店开业-培训", "203");
-     map.put("App测试巡店-新店开业-开业", "204");
-     map.put("App测试巡店-新店开业-回顾", "205");
-     map.put("App测试巡店-新店开业-跟进事项", "206");
-     map.put("App测试巡店-新店开业-门店签退", "207");
-     map.put("App测试巡店-新店开业-酒店签到", "208");
-
-     map.put("App测试巡店-老店巡店-门店签到", "301");
-     map.put("App测试巡店-老店巡店-客户回顾", "302");
-     map.put("App测试巡店-老店巡店-店务检查", "303");
-     map.put("App测试巡店-老店巡店-客情维护", "304");
-     map.put("App测试巡店-老店巡店-跟进事项", "305");
-     map.put("App测试巡店-老店巡店-门店签退", "306");
-     map.put("App测试巡店-老店巡店-酒店签到", "307");
-     */
-
-    var dataJson = {};
-    if(data != null && data != undefined)
-    {
-        dataJson = data;
-        dataJson["stepId"] = tag;
-    }
-    else
-    {
-        dataJson = JSON.stringify({id:"id",title:'巡店任务'});
-    }
-
-    switch (tag)
-    {
-        // 新店下店
-        case "101": // 酒店签到拍照
-        {
-            // dataJson = JSON.stringify({id:obj.id,title:'新店选址'});
-            dataJson["title"] = "新店选址";
-            pageOperate.openPageData2("guideType",dataJson);
-            // openPageFullPath2("../guideType/guideType");
-            // alert(data.retData.name);
-            break;
-        }
-        case "102":
-        {
-            // openPageFullPath2("../guideStep/guideStep_2");
-            pageOperate.openPageData("guideStep_2","../guideStep/guideStep_2.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "103":
-        {
-            // openPageFullPath2("guideStep_3");
-            pageOperate.openPageData("guideStep_3","../guideStep/guideStep_3.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "104":
-        {
-            // openPageFullPath2("guideStep_4");
-            pageOperate.openPageData("guideStep_4","../guideStep/guideStep_4.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "105":
-        {
-            // openPageFullPath2("guideStep_5");
-            pageOperate.openPageData("guideStep_5","../guideStep/guideStep_5.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "106":
-        {
-            // openPageFullPath2("guideStep_6");
-            pageOperate.openPageData("guideStep","../guideStep/guideStep_6.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "107": // 定位签退
-        {
-            dataJson["title"] = "新店下店";
-            pageOperate.openPageData2("guideLookFollow",dataJson);
-            break;
-        }
-        case "108": // 定位签退
-        {
-            dataJson["title"] = "新店下店";
-            // openPageFullPath2("../guideType/guideType2");
-            pageOperate.openPageData("guideType2","../guideType/guideType2.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "109": // 签到拍照
-        {
-            // openPageFullPath2("../guideType/guideType3");
-            pageOperate.openPageData("guideType3","../guideType/guideType3.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-
-        // 新店开业
-        case "201": // 酒店签到拍照
-        {
-            dataJson["title"] = "新店开业";
-            pageOperate.openPageData("guideTypeNewShopOpen","../guideType/guideTypeNewShopOpen.html",dataJson);
-            break;
-        }
-        case "202":
-        {
-            // openPageFullPath2("../guideStart/guideStart_2");
-            pageOperate.openPageData("guideStart_2","../guideStart/guideStart_2.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "203":
-        {
-            // openPageFullPath2("guideStart_3");
-            pageOperate.openPageData("guideStart_3","../guideStart/guideStart_3.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "204":
-        {
-            // openPageFullPath2("guideStart_4");
-            pageOperate.openPageData("guideStart_4","../guideStart/guideStart_4.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "205":
-        {
-            // openPageFullPath2("guideStart_5");
-            pageOperate.openPageData("guideStart_5","../guideStart/guideStart_5.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "206": // 跟进事项
-        {
-            dataJson["title"] = "新店开业";
-            pageOperate.openPageData2("guideLookFollow",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "207": // 签到拍照
-        {
-            dataJson["title"] = "新店开业";
-            // openPageFullPath2("../guideType/guideType3");
-            pageOperate.openPageData("guideType2","../guideType/guideType2.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "208": // 签到拍照
-        {
-            // openPageFullPath2("../guideType/guideType3");
-            pageOperate.openPageData("guideType3","../guideType/guideType3.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-
-        // 老店巡店
-        case "301": // 酒店签到拍照
-        {
-            // alert(301);
-            dataJson["title"] = "巡店任务";
-            pageOperate.openPageData('guideTypeOldShop', "../guideType/guideTypeOldShop.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "302":
-        {
-            // alr2(JSON.stringify(dataJson));
-            dataJson["type"] = true;//显示导航栏
-            pageOperate.openPageData2("guideLookZhao",dataJson);
-            // openPageFullPath2("../guideLookZhao/guideLookZhao");
-            // openPageData('guideType', "../guideType/guideTypeOldShop.html",dataJson);
-
-            break;
-        }
-        case "303":
-        {
-            // openPage("guideLookCheck");
-            pageOperate.openPageData2("guideLookCheck",dataJson);
-            break;
-        }
-        case "304":
-        {
-            // openPage("guideLookCare");
-            pageOperate.openPageData2("guideLookCare",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "305":
-        {
-            dataJson["title"] = "巡店任务";
-            pageOperate.openPageData2("guideLookFollow",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "306": // 定位签退
-        {
-            dataJson["title"] = "巡店任务";
-            // openPageFullPath2("../guideType/guideType2");
-            pageOperate.openPageData("guideType2","../guideType/guideType2.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-        case "307": // 签到拍照
-        {
-            dataJson["title"] = "巡店任务";
-            // openPageFullPath2("../guideType/guideType3",dataJson);
-            pageOperate.openPageData("guideType3","../guideType/guideType3.html",dataJson);
-            // alert(data.retData.name);
-            break;
-        }
-
-        default:
-        {
-            toast("抱歉！超过了小弟智商范围，无法处理！");
-
-            break;
-        }
-    }
-}
 
 /**
  * 六棱柱菜单操作
@@ -7575,8 +7009,8 @@ var hexagonalOperate = {
          height	Number	是	高度
          * **/
         var pad = 400;
-        var x = paramJson != undefined && paramJson.x != undefined ? paramJson.x : deviceOperate.getOrientation() == 1 || deviceOperate.config.orientation == 4 ? (screen.width - pad) / 2 : (screen.height - pad) / 2 ;
-        var y = paramJson != undefined && paramJson.y != undefined ? paramJson.y : deviceOperate.config.orientation == 1 || deviceOperate.config.orientation == 4 ? screen.height * 0.1
+        var x = paramJson != undefined && paramJson.x != undefined ? paramJson.x : DeviceOperate.getOrientation() == 1 || DeviceOperate.config.orientation == 4 ? (screen.width - pad) / 2 : (screen.height - pad) / 2 ;
+        var y = paramJson != undefined && paramJson.y != undefined ? paramJson.y : DeviceOperate.config.orientation == 1 || DeviceOperate.config.orientation == 4 ? screen.height * 0.1
             : screen.width * 0.01 ;
         var width = paramJson != undefined && paramJson.width != undefined ? paramJson.width : pad;
         var height = paramJson != undefined && paramJson.height != undefined ? paramJson.height : pad;
@@ -7617,23 +7051,6 @@ var strReplaceOperate = {
     }
 }
 
-/**
- * 是否是门投资中心
- * @param departmentId int,//部门id
- return,//若是门投的返回true,反之返回false
- * **/
-function isDoorInvest(departmentId) {
-    var bool = false;
-    var deptList = [4,12, 15, 16, 7, 13, 115];
-    deptList.forEach(function (value, index, arr) {
-        if(value == departmentId)
-        {
-            bool = true;
-        }
-    });
-
-    return bool;
-}
 
 /**
  * 跨页面通道并且传送数据
@@ -7672,9 +7089,9 @@ var channelAcrossOperate = {
     getChannel:function (callbackFunc,channelId) {
         window.uexOnload = function(type){
 
-            if(deviceOperate.config.onloadFunc != null)
+            if(DeviceOperate.config.onloadFunc != null)
             {
-                deviceOperate.config.onloadFunc();
+                DeviceOperate.config.onloadFunc();
             }
 
             channelAcrossOperate.channel(callbackFunc,channelId);
