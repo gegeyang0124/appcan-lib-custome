@@ -23,15 +23,15 @@
  accountInfo;//获取账户信息
  setJsonData；LocalStoreOperate;//保存数据
  getJsonData;// 获取json数据
- locationOperate; getLocation；//定位
- VideoMgrOperate；//操作视频
+ LocationOperate; getLocation；//定位
+ MediaMgrOperate；//操作视频
  calendar;// 日历
- baiduGeoMapCtrl;// 加载百度地图
+ BaiduGeoMapCtrl;// 加载百度地图
  timerOperate;//时间控制器
  timeFormatConvert；//时间格式转化 使用时先引入moment.js
  asyncLoaded;// 异步加载js文件
  statusConvert;// 状态转化
- databaseOperate;// 数据库操作（原生） 一下所有方法的回调方法，均可以不传
+ DatabaseOperate;// 数据库操作（原生） 一下所有方法的回调方法，均可以不传
  isNumber;// 判断是否是数字
  openDocument;// 打开文档
  fileMgrOperate;// 文件系统管理器
@@ -474,8 +474,38 @@ var PageGuideOperate = {
         }
 
         return param;
+    },
+    /**
+     * 返回上一页刷新
+     * @param callbackFuncPre function,//回调函数，刷新时回调函数 进入前台回调
+     * @param callbackFuncBack function,//回调函数，刷新时回调函数 压入后台回调
+     * **/
+    refreshBack:function(callbackFuncPre,callbackFuncBack, viewModel) {
+        appcan.ready(function() {
+            //state: 状态值,0:回到前台;1:压入后台
+            uexWindow.onStateChange = function(state){
+                setTimeout(function () {
+                    // alert(LocalStoreOperate.getIsForceRefresh())
+                    // alert("state:" + state);
+                    if(LocalStoreOperate.getIsRefresh() || LocalStoreOperate.getIsForceRefresh())
+                    {
+                        if(state == 0 && callbackFuncPre != undefined)
+                        {
+                            callbackFuncPre(state);
+                            LocalStoreOperate.setIsRefresh(false);
+                            LocalStoreOperate.setIsForceRefresh(false);
+                        }
+                        else if(callbackFuncBack != undefined && callbackFuncBack != null)
+                        {
+                            callbackFuncPre(state);
+                        }
+                    }
+                });
+
+            }
+        });
     }
-}
+};
 
 /**
  * 本地存储操作
@@ -1450,7 +1480,7 @@ var ImgOperate = {
         });
 
     }
-}
+};
 
 /**
  * 上下左右滑动监控,上拉加载更多，下拉刷新等
@@ -2307,6 +2337,148 @@ var TimerOperate = {
             - Date.parse(dateGL.getFullYear() + "/1/1"))
             / 86400000) + 1;
     },
+    /**
+     * 星期几的数字转化为汉字
+     *  @param weekInt number,//星期几的数字
+     *  return //星期几的汉字
+     * **/
+    weekConert:function(weekInt) {
+        switch (weekInt)
+        {
+            case 0:
+            {
+                return '日'
+            }
+            case 1:
+            {
+                return '一'
+            }
+            case 2:
+            {
+                return '二'
+            }
+            case 3:
+            {
+                return '三'
+            }
+            case 4:
+            {
+                return '四'
+            }
+            case 5:
+            {
+                return '五'
+            }
+            case 6:
+            {
+                return '六'
+            }
+        }
+    },
+    /**
+     * 获取本周周一和周日的时间戳 对象；或，获取本月的月初的时间戳和月底的时间戳 对象
+     * @param time number,//时间戳
+     * @param tag number,//0 获取本周周一和周日的时间戳 对象；1 是获取本月的
+     * @param type bool,//是否 月初(周一)的时间戳和月底(周日)的时间戳 值为00：00：00和23：59：59 默认true 是
+     1 获取本月的月初的时间戳和月底的时间戳 对象
+     *
+     * return {
+       time1:'',//本周一的时间戳或本月初
+       time2:'',//本周日的时间戳或本月底
+       }
+     * **/
+    getTimeByRank:function(time,tag = 1,type = true) {
+
+        type = type == undefined ? true : type;
+
+        tag = tag == undefined ? 1 : tag;
+        if(time == undefined)
+        {
+            let d = new Date();
+            time = (new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0)).getTime();
+        }
+
+        var timeObj = {
+            time1:null,//本周一的时间戳或本月初
+            time2:null,//本周日的时间戳或本月底
+        };
+        var oneDayTime = ONE_DAY_TIME;//一天的时间，单位毫秒
+        var date = new Date(time);
+
+        switch (tag)
+        {
+            //获取一周的时间戳
+            case 0 :{
+
+                if(date.getDay() != 0)
+                {
+                    timeObj.time1 = time - oneDayTime * (date.getDay() - 1);
+                }
+                else
+                {
+                    timeObj.time1 = time - oneDayTime * 6;
+                }
+                date = new Date(timeObj.time1);
+                if(type){
+                    timeObj.time1 = (new Date(date.getFullYear()
+                        , date.getMonth()
+                        ,date.getDate()
+                        ,0,0,0)).getTime();
+                    timeObj.time2 = timeObj.time1 + oneDayTime * 7 - 1000;
+                }
+                else {
+                    timeObj.time1 = (new Date(date.getFullYear()
+                        , date.getMonth()
+                        ,date.getDate()
+                        ,date.getHours()
+                        ,date.getMinutes()
+                        ,date.getSeconds())).getTime();
+                    timeObj.time2 = timeObj.time1 + oneDayTime * 6;
+                }
+                break;
+            }
+            case 1:
+            {
+                var year = date.getFullYear();
+                var month = date.getMonth();
+                if(type){
+                    timeObj.time1 = (new Date(year, month,1,0,0,0)).getTime();
+                }
+                else {
+                    timeObj.time1 = (new Date(year, month,1
+                        ,date.getHours()
+                        ,date.getMinutes()
+                        ,date.getSeconds())).getTime();
+                }
+
+                if(month == 11)
+                {
+                    year += 1;
+                    month = 0;
+                }
+                else
+                {
+                    month += 1;
+                }
+
+                if(type){
+                    timeObj.time2 = (new Date(year, month,1,23,59,59))
+                        .getTime() - oneDayTime;
+                }
+                else {
+                    timeObj.time2 = (new Date(year, month,1
+                        ,date.getHours()
+                        ,date.getMinutes()
+                        ,date.getSeconds())).getTime() - oneDayTime;
+                }
+
+                break;
+            }
+        }
+
+        return timeObj;
+
+    }
 };
 
 /**
@@ -2455,7 +2627,13 @@ var DownloaderMgr = {
 /**
  * 操作视频 （原生）
  * **/
-var VideoMgrOperate = {
+var MediaMgrOperate = {
+    /**
+     * 多媒体操作对象配置
+     * **/
+    config:{
+        filePathAuto:null,//录音后的录音文件路径
+    },
     /**
      * 录制视频
      * @param leng //录制视频时间长度
@@ -2534,7 +2712,7 @@ var VideoMgrOperate = {
 
         PlatformOperate.verifyPlatform(function () {
 
-            VideoMgrOperate.closeVideo();
+            MediaMgrOperate.closeVideo();
 
             /*
              uexVideo.onPlayerStatusChange(info) //播放器状态改变的监听方法
@@ -2717,6 +2895,122 @@ var VideoMgrOperate = {
          };
 
          alert("选择视频2");*/
+    },
+    /**
+     * 录音，（原生）
+     *  *@param startRecord true开始录音，false停止录音
+     *@param func录音成功回调函数
+     * opId	Number	是	操作ID,在此函数中不起作用,可忽略
+     dataType	Number	是	数据类型,详见CONSTENT中Callback dataType数据类型
+     data	String	是	文件路径
+     **/
+    takeAuto:function(startRecord,func) {
+        // uexAudio.cbRecord(opId,dataType,data);
+        // uexAudio.cbRecord = function(opCode, dataType, data){
+        //     alert(data);
+        //     autoPath = data;
+        // };
+        // uexAudio.cbRecord = func;
+        // uexAudio.record(2,'20153343443');
+
+        PlatformOperate.verifyPlatform(function () {
+            if(startRecord){
+                // uexAudio.cbBackgroundRecord = func;
+                uexAudio.cbBackgroundRecord = function(opCode, dataType, data){
+                    MediaMgrOperate.config.filePathAuto = data;
+                    func(opCode, dataType, data);
+                };
+                uexAudio.startBackgroundRecord(2);
+            }
+            else
+            {
+
+                uexAudio.stopBackgroundRecord();
+            }
+        });
+    },
+    /**
+     * 播放或关闭录音，（原生）
+     *  *@param ctrl 0 开始播放，1 暂停播放，2 重新播播，3 停止播放
+     *  @param filePath null时播放录音的音频
+     **/
+    playAuto:function(ctrl,filePath) {
+
+        PlatformOperate.verifyPlatform(function () {
+            if(filePath == null){
+                if(MediaMgrOperate.config.filePathAuto == null){
+                    DialogOperate.alr2("录音为空");
+                    return;
+                }
+                filePath = MediaMgrOperate.config.filePathAuto;
+
+            }
+
+            switch (ctrl)
+            {
+                case 0:{
+                    //开始播放
+                    // alert("filePath:  " + filePath);
+                    uexAudio.open(filePath);
+                    // alert("ds");
+                    uexAudio.play(0);
+                    // alert("ds1");
+                    break;
+                }
+                case 1:{
+                    //暂停播放
+                    // alert("ds2");
+                    uexAudio.pause();
+                    break;
+                }
+                case 2:{
+                    //重新播播
+                    uexAudio.replay();
+                    break;
+                }
+                case 3:{
+                    //停止播放
+                    uexAudio.stop();
+                    break;
+                }
+            }
+        });
+    },
+    /**
+     * 扫描二维码和条形码,
+     * func 扫描成功，回调函数 func(data);data为二维码扫描成功后的数据
+     * 回传参数
+     *
+     * **/
+    scaner:function(func) {
+        /*uexScanner.cbOpen = function(opCode, dataType, data){
+            alert(data);
+        };*/
+        PlatformOperate.verifyPlatform(function () {
+            /**参数名称	参数类型	是否必选	说明
+             opId	Number	是	操作ID,open失败时为1,正常时为0,失败时一般是用户禁止了APP摄像头权限
+             dataType	Number	是	参数类型详见CONTANT中CallbackdataType数据类型
+             data	 扫描到的数据
+             data = {
+          code:, //二维码扫描得到的数据
+          type:，//二维码类型
+          }
+             **/
+            uexScanner.cbOpen = function(opId,dataType,data)
+            {
+                if(opId == 0)
+                {
+                    func(JSON.parse(data));
+                }
+                else
+                {
+                    toast("失败！请检查摄像头权限！");
+                }
+
+            }
+
+            uexScanner.open();
+        });
     }
 };
 
@@ -2749,7 +3043,7 @@ var FileMgrOperate = {
             }
             else if(verfyStr.indexOf('.mp4') > 0)
             {
-                VideoMgrOperate.playVideo(verfyStr);
+                MediaMgrOperate.playVideo(verfyStr);
             }
             else if(verfyStr.indexOf('.mp3') > 0)
             {
@@ -3016,8 +3310,1530 @@ var FileMgrOperate = {
     }
 };
 
+/**
+ * 地理定位操作 （原生/Js）
+ * **/
+var LocationOperate ={
+    locationData:LocalStoreOperate.getData("location"),
+    /**
+     * 得到定位
+     * * @param funcChange function,//地理位置变化时回调 funcChange(json),//json = json = {
+                                lat:'纬度',
+                                log:‘经度’
+                            }
+     * @param func，（可funct以不传入）回调函数判断是否打开成功，成功时回调 func (json)，此获取地址详细信息
+     *@param isPrompt 是否显示‘正在定位.............’ 不传（undefined）显示，传入不显示
+     * json = {
+ err:,
+  addressInfo:
+ }
+     *
+     参数名称	类型	说明
+     err	Number	0表示获取成功,非0表示获取失败
+     addressInfo	Json	获取成功时的具体地址信息,flag非1时,返回地址名称字符串;为1时,返回Json对象,形式见下:
+
+     addressInfo = {
+    "formatted_address": "北京市海淀区海淀中街15号",
+    "location": {
+        "lat": 39.983197,
+        "lng": 116.317383
+    },
+    "addressComponent": {
+        "province": "北京市",
+        "street_number": "15号",
+        "district": "海淀区",
+        "street": "海淀中街",
+        "city": "北京市"
+    }
+}
+     * func (error, data) {
+      if(!error){
+        alert(JSON.stringify(data));
+      }else{
+        alert(error);
+      }
+    }**/
+    getLocation:function (func,funcChange,isPrompt) {
+        PlatformOperate.verifyPlatform(function () {
+
+            /*type	String	否	指定坐标系类型,"wgs84":采用世界标准经纬度坐标;"bd09":采用百度地图的经纬度坐标;"gcj02":采用高德地图的经纬度坐标.不传,iOS默认返回高德地图的经纬度坐标,Android默认返回百度地图的经纬度坐标
+             callBackFunction（error）	Function	是	回调函数,返回打开定位功能是否成功
+             error	Number	是	为0时,打开定位成功;非0时,打开失败*/
+            // uexLocation.openLocation(type,callBackFunction);
+
+            /* uexLocation.onChange(lat, log); //设备位置变化的监听方法
+             uexLocation.onChange = function(lat, log)
+             lat	Number	是	纬度
+             log	Number	是	经度
+             */
+            // alert("打开地理定位");
+            //打开地理定位
+            uexLocation.openLocation("bd09",function (err) {
+                if(isPrompt == undefined)
+                {
+                    toast("正在定位......");
+                }
+                // alert("err:  " + err + "  err ："  + err);
+                if(!err)
+                {
+                    uexLocation.onChange = function (lat,log) {
+                        // alert("完成");
+                        LocationOperate.closeLocation();
+                        // localStorage["isOpenLocation"] = 1;//打开
+                        // alert("lat:  " + lat + "  log ："  + log);
+                        var location = {
+                            lat:lat,
+                            log:log
+                        }
 
 
+                        if(funcChange != null && funcChange != undefined)
+                        {
+                            var json = {
+                                lat:lat,
+                                log:log
+                            };
+                            if(funcChange != null && funcChange != undefined)
+                            {
+                                funcChange(json);
+                            }
+
+                        }
+
+                        if(func != null && func != undefined)
+                        {
+                            /**latitude	Number	是	纬度
+                             longitude	Number	是	经度
+                             type	String	否	指定传入经纬度所采用坐标系类型,"wgs84":采用世界标准经纬度坐标;"bd09":采用百度地图的经纬度坐标;"gcj02":采用高德地图的经纬度坐标.不传,iOS默认采用世界标准的经纬度坐标,Android默认采用百度地图的经纬度坐标
+                             flag	Number	是	值为1时返回地址详情(JSON格式), 非 1 时返回地址名称
+                             * **/
+                            var params = {
+                                latitude: lat,
+                                longitude: log,
+                                type: "bd09",
+                                flag:1
+                            };
+
+                            uexLocation.getAddressByType(params, function (err,addressInfo) {
+                                var jsonObj = {
+                                    err:err,//错误原因
+                                    addressInfo:addressInfo,//地址信息
+                                    lat:location.lat,
+                                    log:location.log
+                                };
+
+                                LocalStoreOperate.setData("location",jsonObj);
+
+                                if(func != null && func != undefined)
+                                {
+                                    func(jsonObj);
+                                }
+
+                            });
+                        }
+                    };
+                }
+                // else if(localStorage["isOpenLocation"] != 1)
+                else
+                {
+                    // alr2("请为app授予定位权限");
+                    if(isPrompt == undefined)
+                    {
+                        LocationOperate.isStartLocationService();
+                    }
+                }
+
+            });
+
+        });
+    },
+    /**
+     * 得到定位 不显示提示信息
+     * **/
+    getLocationHide:function (func,funcChange) {
+        /* if(funcChange == undefined)
+         {
+             funcChange = undefined;
+         }*/
+        LocationOperate.getLocation(func,funcChange,true);
+    },
+    /**
+     * 关闭定位
+     * **/
+    closeLocation:function () {
+        PlatformOperate.verifyPlatform(function () {
+            uexLocation.closeLocation();
+        });
+    },
+    /**
+     * 获取逆地址（地理地址）
+     * @param location,//位置location={lat:'纬度',log:'经度'}
+     * @param callbackFunc,//回调函数
+     * 成功时回调 callbackFunc (json)，此获取地址详细信息
+     *json = {
+ err:,
+  addressInfo:
+ }
+     *
+     参数名称	类型	说明
+     error	Number	0表示获取成功,非0表示获取失败
+     addressInfo	Json	获取成功时的具体地址信息,flag非1时,返回地址名称字符串;为1时,返回Json对象,形式见下:
+
+     addressInfo = {
+    "formatted_address": "北京市海淀区海淀中街15号",
+    "location": {
+        "lat": 39.983197,
+        "lng": 116.317383
+    },
+    "addressComponent": {
+        "province": "北京市",
+        "street_number": "15号",
+        "district": "海淀区",
+        "street": "海淀中街",
+        "city": "北京市"
+    }
+}
+     * func (error, data) {
+      if(!error){
+        alert(JSON.stringify(data));
+      }else{
+        alert(error);
+      }
+    }
+     * **/
+    getGeoAddress:function (loaction,callbackFunc) {
+        PlatformOperate.verifyPlatform(function () {
+            /**latitude	Number	是	纬度
+             longitude	Number	是	经度
+             type	String	否	指定传入经纬度所采用坐标系类型,"wgs84":采用世界标准经纬度坐标;"bd09":采用百度地图的经纬度坐标;"gcj02":采用高德地图的经纬度坐标.不传,iOS默认采用世界标准的经纬度坐标,Android默认采用百度地图的经纬度坐标
+             flag	Number	是	值为1时返回地址详情(JSON格式), 非 1 时返回地址名称
+             * **/
+            var params = {
+                latitude: loaction.lat,
+                longitude: loaction.log,
+                type: "bd09",
+                flag:1
+            };
+            uexLocation.getAddressByType(params, function (err,addressInfo) {
+                var jsonObj = {
+                    err:err,//错误原因
+                    addressInfo:addressInfo,//地址信息
+                }
+                if(callbackFunc != null && callbackFunc != undefined)
+                {
+                    callbackFunc(jsonObj);
+                }
+            });
+        });
+    },
+    /**
+     * 是否开启位置服务
+     * **/
+    isStartLocationService:function () {
+        var params = {
+            setting:"GPS"//位置服务功能
+        };
+        /** data	true开启,false未开启**/
+        uexDevice.isFunctionEnable(JSON.stringify(params), function(data) {
+            if (data) {
+                // alert('已开启');
+            } else {
+                // alert('未开启');
+                DialogOperate.alrBtn22("请开启位置服务",function () {
+
+                    uexDevice.openSetting(JSON.stringify(params));
+                });
+            }
+        });
+    },
+    /**
+     * 地理定位 （JS）
+     * @param open为true就是打开定位，false就是关闭定位
+     * @param func，回调函数判断是否打开成功，成功时回调 func (error, data)，
+     * func (error, data) {
+      if(!error){
+        alert(JSON.stringify(data));
+      }else{
+        alert(error);
+      }
+    }
+     * **/
+    getLocationJS:function (func) {
+        if (navigator.geolocation) {alert("定位");
+            navigator.geolocation.getCurrentPosition((position) => {alert(JSON.stringify(position));
+                func(position);
+            }, (error) => {
+                alert("失败");
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert("定位失败,用户拒绝请求地理定位");
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        // alert("定位失败,位置信息是不可用");
+                        alert("定位失败,请为app打开定位权限");
+                        break;
+                    case error.TIMEOUT:
+                        alert("定位失败,请求获取用户位置超时");
+                        break;
+                    default: alert("请检查是否打开定位权限！");
+                }
+            });
+        }
+        else {
+            alert("不支持定位");
+        }
+    }
+}
+
+/**
+ * 加载百度地图（js/原生，原生：baiduGeoMapCtrlNative）
+ * **/
+var BaiduGeoMapCtrl = {
+    //初始化地图所需数据
+    config:{
+        map:null,//BMap.Map,百度地图实例
+        idTag:'allmap',//显示地图区的标签id ,不允许自定义标签id
+        location:{ //地图位置
+            log:113.312213, //经度
+            lat:23.147267,//纬度
+        },
+        markerArr:[],/*标注数据列,数据格式：
+         var markerArrs = [
+         { title: "广州火车站", location: {log:113.264531,lat:23.157003}, address: "广东省广州市广州火车站", tel: "12306",html:null },
+         { title: "广州塔（赤岗塔）", location: {log:113.330934,lat:23.113401}, address: "广东省广州市广州塔（赤岗塔） ", tel: "18500000000",html:null },
+         { title: "广州动物园", location: {log:113.312213,lat:23.147267}, address: "广东省广州市广州动物园", tel: "18500000000",html:null },
+         { title: "天河公园", location: {log:113.372867,lat:23.134274}, address: "广东省广州市天河公园", tel: "18500000000",html:null }
+
+         ];*/
+
+        infos:[],//弹出气泡窗口
+        markersObjLst:[],//标注对象列
+    },
+    //添加script
+    loadJScript:function () {
+        var script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = "http://api.map.baidu.com/api?v=2.0&ak=C93b5178d7a8ebdb830b9b557abce78b&callback=BaiduGeoMapCtrl.init";
+        document.body.appendChild(script);
+    },
+    //初始化地图
+    init:function () {
+        var map = null;
+        if(BaiduGeoMapCtrl.config.map == null)
+        {
+            map = new BMap.Map(BaiduGeoMapCtrl.config.idTag); // 创建Map实例
+        }
+        else
+        {
+            map = BaiduGeoMapCtrl.config.map;
+        }
+
+        var point = new BMap.Point(BaiduGeoMapCtrl.config.location.log, BaiduGeoMapCtrl.config.location.lat); // 创建点坐标
+        // map.addControl(new BMap.MapTypeControl());   //添加地图类型控件
+        // map.centerAndZoom(point,15);
+        map.centerAndZoom(point, 13);   // 初始化地图,设置中心点坐标和地图级别。
+        map.enableScrollWheelZoom();                 //启用滚轮放大缩小
+
+        //添加标注
+        {
+            var markerArr =  BaiduGeoMapCtrl.config.markerArr;
+
+            // point[0] = new window.BMap.Point(113.264531,23.157003); //循环生成新的地图点
+            for(var i = 0; i < markerArr.length; i++)
+            {
+                var marker = new window.BMap.Marker((new window.BMap.Point(markerArr[i].location.log,markerArr[i].location.lat))); //按照地图点坐标生成标记
+
+                // marker.setAnimation(BMAP_ANIMATION_BOUNCE); //跳动的动画
+                var label = new window.BMap.Label(markerArr[i].title, { offset: new window.BMap.Size(20, -60) });
+                label.setStyle({ //给label设置样式，任意的CSS都是可以的
+
+                    // "color":"red", //颜色
+
+                    "fontSize":"50px", //字号
+
+                    // "border":"0", //边
+
+                    // "height":"120px", //高度
+
+                    // " width":"125px", //宽
+
+                    // "textAlign":"center", //文字水平居中显示
+
+                    // "lineHeight":"120px", //行高，文字垂直居中显示
+
+                    // "background":"url(http://cdn1.iconfinder.com/data/icons/CrystalClear/128x128/actions/gohome.png)", //背景图片，这是房产标注的关键！
+
+                    // "cursor":"pointer"
+
+                });
+
+                var myicon = new window.BMap.Icon(
+                    // '../../images/point.png', // 图片
+                    'http://api.map.baidu.com/img/markers.png',
+                    new BMap.Size(66,100), // 视窗大小
+                    {
+                        imageSize: new BMap.Size(144,1292), // 引用图片实际大小
+                        imageOffset:new BMap.Size(0, -1094)  // 图片相对视窗的偏移
+                    }
+                );
+                // var marker = new BMap.Marker(point,{icon:myicon});
+                marker.setLabel(label);
+                marker.setIcon(myicon);
+                BaiduGeoMapCtrl.config.markersObjLst.push(marker);
+                map.addOverlay(marker);//添加标注
+
+                // BaiduGeoMapCtrl.config.infos.push(info);
+                BaiduGeoMapCtrl.addClickHandler(i,marker);
+
+                /*markers[i].addEventListener("click", function (e) {
+                    // alert("e");alert(e.target);
+
+                    // var p = e.target;
+                    // var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat);
+                    // var infoWindow = new BMap.InfoWindow(info,opts);  // 创建信息窗口对象
+                    // map.openInfoWindow(infoWindow,point); //开启信息窗口
+
+                    // this.openInfoWindow(info);
+                });*/
+            }
+
+        }
+
+        BaiduGeoMapCtrl.config.map = map;
+    },
+    /**
+     * 加载百度地图
+     * @param location json,//地图位置
+     * location = {
+        log:int,//经度
+        lat:int,//纬度
+       }
+     @param markerArr json,//弹出气泡html数组
+     markerArr = [{
+     title: "广州火车站",//显示标志
+      location: {log:113.264531,lat:23.157003},//地图位置
+      html:null,//弹出气泡信息
+     }]
+     * **/
+    load:function (location,markerArr) {
+
+        if(location != null || location != undefined){
+            BaiduGeoMapCtrl.config.location = location;
+        }
+        if(markerArr != null || markerArr != undefined)
+        {
+            BaiduGeoMapCtrl.config.markerArr = markerArr;
+            // console.info("BaiduGeoMapCtrl.config.markerArr: ",markerArr);
+        }
+        // window.onload = BaiduGeoMapCtrl.loadJScript;  //异步加载地图 window.onload :页面加载完立马触发
+        BaiduGeoMapCtrl.loadJScript();
+    },
+    /**
+     * 添加冒泡（marker）标签点击事件
+     * **/
+    addClickHandler:function(infoId,marker){
+        marker.addEventListener("click",function(e){
+            /*alert(JSON.stringify(BaiduGeoMapCtrl.config.markerArr[infoId]));
+            var fourOpts = {
+                width:1100,
+                height:1200
+            };*/
+
+            var fourOpts = {
+                width:500,
+                height:1500
+            };
+            this.openInfoWindow(new window.BMap.InfoWindow(BaiduGeoMapCtrl.config.markerArr[infoId].html,fourOpts));
+            // this.openInfoWindow(BaiduGeoMapCtrl.config.infos[infoId]);
+        });
+    },
+    /**
+     * 根据地点和地址搜索，跳动显示搜索到的位置
+     * @param data string,地点或地址
+     */
+    search:function (data) {
+        var mArr = BaiduGeoMapCtrl.config.markerArr;
+        for(var i = 0; i < mArr.length; i++){
+            if(mArr[i].title.indexOf(data) > -1 || mArr[i].address.indexOf(data) > -1)
+            {
+                // alert("yes " + i);
+                BaiduGeoMapCtrl.config.markersObjLst[i].setAnimation(BMAP_ANIMATION_BOUNCE); //跳动的动画
+
+            }
+            else
+            {
+                // alert("no " + i);
+                BaiduGeoMapCtrl.config.markersObjLst[i].setAnimation(null); //取消动画
+            }
+        }
+
+    },
+    /**
+     * 打开冒泡（marker）对话框
+     * **/
+    openInfo:function (content,e, opts) {
+
+        // alert("content:" + content);
+        BaiduGeoMapCtrl.config.map.openInfoWindow(BaiduGeoMapCtrl.config.infos[0]);
+        // var p = e.target;
+        // var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat);
+        // var infoWindow = new BMap.InfoWindow(content + "",opts);  // 创建信息窗口对象
+        // BaiduGeoMapCtrl.config.map.openInfoWindow(infoWindow,point); //开启信息窗口
+    },
+
+    /**
+     * 加载百度地图（原生）
+     * @param ctrl int ;0打开地图，1关闭地图,2设置地图的中心点,3添加标注,4更新标注
+     * * @param json json,//地图位置,若ctrl = 0,
+     * json = {
+        log:int,//经度
+        lat:int,//纬度
+       }*
+     若 ctrl = 2
+     id	String	否	唯一标识符,不传时插件随机生成
+     longitude	Number	是	经度
+     latitude	Number	是	纬度
+     icon	String	否	标注图标路径,支持类型:"res://""http://"
+     bubble	String	否	自定义弹出气泡
+     title	String	是	自定义弹出气泡标题
+     bgImage	String	否	自定义弹出气泡背景图片,格式:res://btn.png
+     json=[
+     {
+     id:,
+     longitude:,
+     latitude:,
+     icon:,
+     bubble:{
+          title:,
+          bgImage:
+     }
+ }
+     ]，
+     若ctrl = 4,
+     json={
+    id:,
+    longitude:,
+    latitude:,
+    icon:,
+    bubble:{
+        title:,
+        bgImage:
+    }
+     * @param func function ;打开地图后的回传参数
+     * **/
+    baiduGeoMapCtrlNative:function(ctrl, json, func) {
+        switch (ctrl)
+        {
+            case 0: {
+                /*
+                 x	Number	是	x坐标
+                 y	Number	是	y坐标
+                 width	Number	是	地图宽度
+                 height	Number	是	地图高度
+                 longitude	Number	是	地图中心点经度
+                 latitude	Number	是	地图中心点纬度
+                 callbackFunction	Function	否	地图打开后的回调
+                 x,y,width,height 的单位均为px
+                 (x,y)表示地图左上角的坐标
+                 uexBaiduMap.open(x,y,width,height,longitude,latitude, callbackFunction)
+                  */
+
+                uexBaiduMap.open(0,0,screen.width,screen.height,json.log,json.lat, func);
+                uexBaiduMap.setZoomEnable(1);//开启或关闭缩放，0-关闭,1-开启
+                uexBaiduMap.setRotateEnable(1);////开启或关闭旋转，0-关闭,1-开启
+                uexBaiduMap.setCompassEnable(1);//开始或关闭指南针，0-关闭,1-开启
+                uexBaiduMap.setScrollEnable(1); //开启或关闭平移，0-关闭,1-开启
+                /* uexBaiduMap.addMarkersOverlay(json);//添加标注
+                var json=[
+                    {
+                        id:,
+                        longitude:,
+                        latitude:,
+                        icon:,
+                        bubble:{
+                            title:,
+                            bgImage:
+                        }
+                    }
+                ]
+                id	String	否	唯一标识符,不传时插件随机生成
+                longitude	Number	是	经度
+                latitude	Number	是	纬度
+                icon	String	否	标注图标路径,支持类型:"res://""http://"
+                bubble	String	否	自定义弹出气泡
+                title	String	是	自定义弹出气泡标题
+                bgImage	String	否	自定义弹出气泡背景图片,格式:res://btn.png
+            */
+                break;
+            }
+            case 1: {
+                //关闭地图
+                uexBaiduMap.close();
+                break;
+            }
+            case 2: {
+                //设置地图的中心点
+                uexBaiduMap.setCenter(json.log,json.lat);
+                break;
+            }
+            case 3:
+            {
+                /**
+                 * 添加标注
+                 * @param json ,标注数组
+                 * var json=[
+                 {
+                 id:,
+                 longitude:,
+                 latitude:,
+                 icon:,
+                 bubble:{
+                      title:,
+                      bgImage:
+                 }
+             }
+                 ]
+                 * 添加到地图的标注信息的集合.该字符串为JSON格式.如下:**/
+                uexBaiduMap.addMarkersOverlay(json);
+                break;
+            }
+            case 4 : {
+                /**
+                 * uexBaiduMap.setMarkerOverlay(makerId,makerInfo);
+                 makerId	String	是	唯一标识符
+                 makerInfo	String	是	标注信息,json格式，形式见下：
+                 var makerInfo={
+    longitude:,
+    latitude:,
+    icon:,
+    bubble:{
+        title:,
+        bgImage:
+    }
+}
+                 longitude	Number	是	标注经度
+                 latitude	Number	是	标注纬度
+                 icon	String	否	标注图标
+                 bubble	Object	是	气泡设置
+                 title	String	是	气泡标题
+                 bgImage	String	否	气泡背景图片
+                 示例
+                 * **/
+                uexBaiduMap.setMarkerOverlay(json.id,json);
+                break;
+            }
+        }
+    }
+};
+
+/**
+ * 极光推送 （原生）
+ * **/
+var JPush = {
+    /**
+     * 配置信息
+     *@param tags 极光推送标签；为安装了应用程序的用户打上标签，其目的主要是方便开发者根据标签，
+     来批量下发 Push 消息。 可为每个用户打多个标签。 举例： game, old_page, women
+     * @param alias 极光推送别名;每个用户只能指定一个别名。 同一个应用程序内，
+     对不同的用户，建议取不同的别名。这样，尽可能根据别名来唯一确定用户。
+     * @param ;客户端初始化 JPush 成功后，JPush 服务端会分配一个 Registration ID，
+     作为此设备的标识（同一个手机不同 APP 的 Registration ID 是不同的）。
+     开发者可以通过指定具体的 Registration ID 来进行对单一设备的推送。
+     * **/
+    config:{
+        alias:null,//极光推送别名,
+        tags:["tag"],//极光推送标签 array
+        registrationID:null,//JPush 服务端会分配一个 Registration ID 注册id
+        // registrationID:uexJPush.getRegistrationID(),//取得应用程序对应的 RegistrationID
+        receiveMessageFunc:null,//收到了自定义消息处理回调函数
+        receiveNotificationFunc:null,//接收到到通知的回调函数
+        receiveNotificationOpenFunc:null,//点击打开通知的回调函数
+        receiveConnectionChangeFunc:null,//连接状态变化回调函数
+        receiveNotPushFunc:null,//禁止推送时回调函数
+    },
+    /**
+     * setAlias //设置别名,别名:用于给某特定用户推送消息。别名，可以近似地被认为，是用户帐号里的昵称。
+     * @param alias	 string,//是	,传入参数 //String 设置的别名
+     @param callBackFunction	Function	是	回调函数,callBackFunction(error,data)
+     error	Number	是	0-成功,非0-失败 具体失败代码解释见文末附录
+     data	Object	是	回调数据,形式见下:
+     **/
+    setAlias:function (callbackFunction,alias) {
+        JPush.config.alias = alias == undefined || alias == null ? JPush.config.alias : alias;
+        uexJPush.setAlias({alias:JPush.config.alias}, function (err,info) {
+            /**
+             * info = {
+            alias://设置的别名
+              };
+             * **/
+            if(err == 0)
+            {
+
+                if(callbackFunction != undefined && callbackFunction != null)
+                {
+                    callbackFunction(info);
+                }
+            }
+            else
+            {
+                toast("别名设置失败");
+            }
+
+        });
+    },
+    /**
+     * 设置标签,标签:用于给某一群人推送消息。标签类似于博客里为文章打上 tag ，即为某资源分类。
+     * @param tags string,//设置标签
+     * @param callbackFunction function,//回调函数 callbackFunction（error，data）
+     error	Number	是	0-成功,非0-失败 具体失败代码解释见文末附录
+     data	Object	是	回调数据，形式见下:
+     * **/
+    setTags:function (callbackFunction,tags) {
+        JPush.config.tags = tags == undefined || tags == null ? JPush.config.tags : tags;
+        JPush.config.tags = JPush.config.tags.constructor == Array ? JPush.config.tags : [JPush.config.tags];
+        uexJPush.setTags({tags:JPush.config.tags}, function (err,info) {
+            /**
+             * info = {
+            tags://设置的标签
+              };
+             * **/
+            if(err == 0)
+            {
+                if(callbackFunction != undefined && callbackFunction != null)
+                {
+                    callbackFunction(info);
+                }
+            }
+            else
+            {
+                toast("标签设置失败");
+            }
+        });
+    },
+    /**
+     * 同时设置别名与标签, 执行完成后回调callbackFunction
+     * @param json	Object	是	传入参数
+     json={
+    alias:,//string 设置的别名
+    tags:,//Set<String> 设置的标签
+    }
+     @param callBackFunction	Function	是	回调函数 callbackFunction（error，data）
+     error	Number	是	0-成功,非0-失败 具体失败代码解释见文末附录
+     data	Object	是	回调数据,形式见下:
+     * **/
+    setAliasAndTags:function (callbackFunction,json) {
+        PlatformOperate.verifyPlatform(function () {
+            var aTJson = {
+                tags:json != undefined ? json.tags != undefined ? json.tags : JPush.config.tags : JPush.config.tags,
+                alias:json != undefined ? json.alias != undefined ? json.alias : JPush.config.alias : JPush.config.alias
+            };
+            aTJson.tags = aTJson.tags.constructor == Array ? aTJson.tags : [aTJson.tags];
+            JPush.config.tags = aTJson.tags;
+            JPush.config.alias = aTJson.alias;
+            uexJPush.setAliasAndTags(aTJson, function (err,info) {
+                /**
+                 * info = {
+                alias://设置的别名
+                tags://设置的标签
+                };**/
+                if(err == 0)
+                {
+                    if(callbackFunction != undefined && callbackFunction != null)
+                    {
+                        // alert("info:" + JSON.stringify(info));
+                        callbackFunction(info);
+                    }
+                    // uexJPush.resumePush();//恢复推送服务
+                }
+                else
+                {
+                    toast("别名和标签设置失败");
+                }
+            });
+        });
+    },
+    /**
+     * 取得应用程序对应的 RegistrationID
+     * **/
+    getRegistrationID:function () {
+        return uexJPush.getRegistrationID();
+    },
+    /**
+     * 开始极光推送服务
+     * @param configJson json,//设置标签和别名，可为null;json={
+                 alias:,//string 设置的别名
+                 tags:,//Set<String> 设置的标签
+               }
+     * @param callbackJson json,//回调用函数json对象
+     callbackJson = {
+               receiveMessageFunc:null,//收到了自定义消息处理回调函数
+               receiveNotificationFunc:null,//接收到到通知的回调函数
+               receiveNotificationOpenFunc:null,//点击打开通知的回调函数
+               receiveConnectionChangeFunc:null,//连接状态变化回调函数
+               receiveNotPushFunc:null,//禁止推送时回调函数
+         }
+     * **/
+    startJPush:function (callbackJson,configJson) {
+        // alert("SD");
+        window.uexOnload = function(type){
+
+            if(DeviceOperate.config.onloadFunc != null)
+            {
+                DeviceOperate.config.onloadFunc(isPush);
+            }
+
+            PlatformOperate.verifyPlatform(function () {
+                if(isPush)
+                {
+                    JPush.config.alias = configJson != undefined && configJson != null
+                        ? configJson.alias == undefined
+                            ? JPush.config.alias : configJson.alias : JPush.config.alias;
+                    JPush.config.tags = configJson != undefined && configJson != null
+                        ?  configJson.tags == undefined
+                            ? JPush.config.tags : configJson.tags : JPush.config.tags;
+
+                    JPush.config.receiveMessageFunc = callbackJson != undefined && callbackJson != null
+                        ?  callbackJson.receiveMessageFunc == undefined
+                            ? JPush.config.receiveMessageFunc
+                            : callbackJson.receiveMessageFunc
+                        : JPush.config.receiveMessageFunc;
+                    JPush.config.receiveNotificationFunc = callbackJson != undefined && callbackJson != null
+                        ?  callbackJson.receiveNotificationFunc == undefined
+                            ? JPush.config.receiveNotificationFunc
+                            : callbackJson.receiveNotificationFunc
+                        : JPush.config.receiveNotificationFunc;
+                    JPush.config.receiveNotificationOpenFunc = callbackJson != undefined && callbackJson != null
+                        ?  callbackJson.receiveNotificationOpenFunc == undefined
+                            ? JPush.config.receiveNotificationOpenFunc
+                            : callbackJson.receiveNotificationOpenFunc
+                        : JPush.config.receiveNotificationOpenFunc;
+                    JPush.config.receiveConnectionChangeFunc = callbackJson != undefined && callbackJson != null
+                        ?  callbackJson.receiveConnectionChangeFunc == undefined
+                            ? JPush.config.receiveConnectionChangeFunc
+                            : callbackJson.receiveConnectionChangeFunc
+                        : JPush.config.receiveConnectionChangeFunc;
+
+                    /**
+                     * 增量更新回掉函数
+                     * **/
+                    uexUpdate.onWidgetPatchUpdate = function (opId,dataType,data){
+                        var obj = JSON.parse(data);
+                        // alert("已完成更新，请重启: " +  JSON.stringify(obj));
+                        if(obj.status=="ok")
+                        {
+                            /*
+                            toast("正在配置重启动",{
+                                duration:2000,
+                                type:1
+                            });*/
+
+                            setTimeout(function () {
+
+                                DialogOperate.alrBtn("更新完成","是否重启，重启会黑屏一段时间，不要关闭哦！",
+                                    ['否', '是'],function () {
+                                    uexWidgetOne.restart();
+                                });
+
+                            },3000);
+                            //appcan.frame.open('content',"popOver_content.html",'0',titHeight,'newWin');
+                            // uexWidgetOne.exit(0);
+                        }
+                    }
+
+                    /**ios app桌面图标右上角气泡 显示未读数,设置默认值**/
+                    uexJPush.setBadgeNumber(0);
+
+                    JPush.setAliasAndTags();
+
+                    /**
+                     * 应用程序注册监听
+                     * var json={
+                            title:,//RegistrationID
+                          };
+                     * **/
+                    uexJPush.onReceiveRegistration = function (info) {
+                        info = JSON.parse(info);
+                        // alert("RegistrationID: " + JSON.stringify(info));
+                        JPush.config.registrationID = info.title;
+
+                    };
+
+                    /**
+                     * 收到了自定义消息
+                     * var json={
+                             message:,//String 对应 Portal 推送消息界面上的"自定义消息内容"字段
+                             extras:,// 对应 Portal 推送消息界面上的"可选设置"里的附加字段
+                    };
+                     * **/
+                    uexJPush.onReceiveMessage = function (info) {
+                        info = JSON.parse(info);
+                        // alert("接收自定义信息：" + JSON.stringify(info));
+                        if(JPush.config.receiveMessageFunc != undefined
+                            && JPush.config.receiveMessageFunc != null)
+                        {
+                            JPush.config.receiveMessageFunc(info);
+                        }
+                    };
+
+                    /**
+                     * 收到了通知
+                     * var json={
+                            content:,//对应 Portal 推送通知界面上的"通知内容"字段.
+                            extras:,//对应 Portal 推送消息界面上的"可选设置"里的附加字段.
+                            notificationId:,//(仅Android以及iOS本地通知) 消息Id,用于清除通知
+                            isAPNs:,//(仅iOS)本通知是否由APNs服务发出 true/false
+                         };
+                     * **/
+                    uexJPush.onReceiveNotification = function (info) {
+                        info = JSON.parse(info);
+                        // alert("接收通知：" + JSON.stringify(info));
+                        if(JPush.config.receiveNotificationFunc != undefined
+                            && JPush.config.receiveNotificationFunc != null)
+                        {
+                            JPush.config.receiveNotificationFunc(info);
+                        }
+                    };
+
+                    /**
+                     * 用户点击了通知
+                     * var param={
+                              content:,//对应 Portal 推送通知界面上的"通知内容"字段.
+                              extras:,//对应 Portal 推送消息界面上的"可选设置"里的附加字段.
+                              notificationId:,//(仅Android)消息Id,可以用于清除通知
+                              sAPNs:,//(仅iOS)本通知是否由APNs服务发出 true/false
+                        };
+                     * **/
+                    uexJPush.onReceiveNotificationOpen = function (info) {
+                        info = JSON.parse(info);
+                        // alert("通知点击：" + JSON.stringify(info));
+                        if(JPush.config.receiveNotificationOpenFunc != undefined
+                            && JPush.config.receiveNotificationOpenFunc != null)
+                        {
+                            JPush.config.receiveNotificationOpenFunc(info);
+                        }
+                    };
+
+                    //此接口仅 iOS 拥有,仅在iOS 10.0+系统上有效
+                    uexJPush.showNotificationAlertInForeground(true);//true - 显示 , false - 不显示
+
+                    /**
+                     * 连接状态变化
+                     * var json={
+                            connect:,//0-已连接上,1-未连接
+                          };
+                     * **/
+                    uexJPush.onReceiveConnectionChange = function (info) {
+                        info = JSON.parse(info);
+                        // alert("是否链接：" + JSON.stringify(info));
+                        if(JPush.config.receiveConnectionChangeFunc != undefined
+                            && JPush.config.receiveConnectionChangeFunc != null)
+                        {
+                            // alert("是否链接：获取");
+                            JPush.config.receiveConnectionChangeFunc(info);
+                        }
+                    };
+
+                    if(callbackJson != undefined && callbackJson != null && callbackJson.execFunc != undefined)
+                    {
+                        callbackJson.execFunc();
+                    }
+                }
+                else
+                {
+                    JPush.config.receiveNotPushFunc = callbackJson.receiveNotPushFunc == undefined
+                        ? JPush.config.receiveNotPushFunc
+                        : callbackJson.receiveNotPushFunc;
+
+                    if(JPush.config.receiveNotPushFunc != null)
+                    {
+                        JPush.config.receiveNotPushFunc();
+                    }
+                }
+
+            });
+
+        };
+    },
+    /**
+     * 关闭极光推送；
+     * **/
+    closeJPush:function () {
+        PlatformOperate.verifyPlatform(function () {
+            //停止推送服务
+            uexJPush.stopPush();
+        });
+    },
+    /**
+     * 添加一个本地通知
+     * @param json json,//通知内容参数
+     * json={
+    builderId:0,//long 设置本地通知样式(仅Android有效)
+    title:,//本地通知的title
+    content:,//设置本地通知的content
+    extras:,//额外的数据信息extras为json字符串
+    notificationId:,//int 设置本地通知的ID
+    broadCastTime:,//long 设置本地通知延迟触发时间,毫秒为单位,如设置10000为延迟10秒添加通知
+     * **/
+    addLocalNotification:function (json) {
+        /*
+        var json = {
+            builderId:0,
+            title:"这是title",
+            content:"这是内容",
+            extras:{"key":"value"},
+            notificationId:3,
+            broadCastTime:10000
+        };*/
+        uexJPush.addLocalNotification(json);
+    },
+    /**
+     * clearLocalNotifications //移除所有的通知
+     * **/
+    clearLocalNotifications:function () {
+        uexJPush.clearLocalNotifications();
+    }
+};
+
+/**
+ * 数据库操作（原生） 一下所有方法的回调方法，均可以不传
+ * **/
+var DatabaseOperate = {
+    /**
+     * 数据库配置
+     * **/
+    config:{
+        dbId:1,//数据库唯一标识符
+        db:null,//数据库对象
+        nameDB:"db_file",//数据库的名字
+        tables:[
+            "CREATE TABLE IF NOT EXISTS tb_ctrl " +
+            "(id integer primary key," +
+            "service_Id varchar(100) not null," +
+            "readed integer not null default 0," +
+            "time varchar(100) not null," +
+            "itemsTotal integer not null)",//表(tb_ctrl)--工作台
+
+            "CREATE TABLE IF NOT EXISTS tb_attachment " +
+            "(id integer primary key," +
+            "task_Id varchar(100) not null," +
+            "step_Id varchar(20) not null," +
+            "fileUrl varchar(1000) not null," +
+            "attachInfo varchar(1000) not null)",//表(tb_attachment)
+
+        ],//需要创建表的sql数据集
+    },//数据库基础配置数据
+    /**
+     * 打开或创建数据库
+     * @param nameDB string,//数据库名
+     * @param callbackFunc(data) function,//回调函数
+     * data={
+       err,data,db,dataType,optId
+       }
+     //:数据库创建成功后的回调，如果创建过程中有错误 err不为空，否则err为空，data返回的执行结果，
+     db是数据库创建成功后的数据库对象，可 以执行相关的操作，dataType返回结果的数据类型，optId操作Id
+     * **/
+    openOrCreateDB:function (callbackFunc) {
+
+        /**
+         * opId	Number	是	数据库对象的唯一标识符
+         dataType	Number	是	参数类型详见CONSTANT中Callback方法数据类型
+         data	Number	是	返回uex.cSuccess或者uex.cFailed,详见CONSTANT中Callbackint类型数据
+         * **/
+        var interval = setInterval(function () {
+                // openDataBase 打开数据库
+                // window.uexOnload = function() {
+                appcan.ready(function() {
+                    var db = uexDataBaseMgr.open(DatabaseOperate.config.nameDB);
+                    // alert(JSON.stringify(db));
+                    if(!db){
+                        // alert("打开失败!");
+                        console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 Start------------------------------------");
+                        console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 End------------------------------------");
+                    }
+                    else
+                    {
+                        clearInterval(interval);
+                        // alert("数据库打开成功!");
+                        console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建成功------------------------------------");
+                        DatabaseOperate.config.db = db;
+                        callbackFunc(db);
+                    }
+                    /*uexDataBaseMgr.cbOpenDataBase = function (opId,dataType,data) {
+                     if(data == 0){
+                     alert("数据库打开成功!");
+                     if(callbackFunc != null && callbackFunc != undefined)
+                     {
+                     callbackFunc({opId:opId,data:data,dataType:dataType});
+                     }
+                     console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建成功------------------------------------");
+                     }else{
+                     alert("数据库打开失败!");
+                     console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 Start------------------------------------");
+                     }
+                     };
+                     uexDataBaseMgr.openDataBase(DatabaseOperate.config.nameDB,DatabaseOperate.config.dbId);*/
+                });
+            },100);
+
+
+        //创建一个名字为''''数据库
+        /*appcan.ready(function() {
+         appcan.database.create(DatabaseOperate.config.nameDB,function(err,data,db,dataType,optId){
+         if(err){
+         //创建过程中出错了
+         // alert('create error');
+         console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 Start------------------------------------");
+         console.log(err);
+         console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 End------------------------------------");
+         return;
+         }
+
+         //db就是数据库对象
+         if(data == 0){
+         console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建成功------------------------------------");
+         //数据库创建成功可以使用了
+         DatabaseOperate.config.db = db;
+         DatabaseOperate.config.db = db;
+
+         setTimeout(function () {
+         if(callbackFunc != null && callbackFunc != undefined)
+         {
+         callbackFunc({err:err,data:data,db:db,dataType:dataType,optId:optId});
+         }
+
+         },0);
+
+         return db;
+
+         }else{
+         console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建失败------------------------------------");
+         //数据库创建失败了
+         return;
+         }
+         });
+         });*/
+
+    },
+    /**
+     * 查询数据
+     @param sql,//sql语句
+     @param callbackFunc（data） function,//查询后的回调函数
+     data,查询失败为null;否则为//已查到数据
+     **/
+    query:function (sql,callbackFunc) {
+        if(DatabaseOperate.config.db != null)
+        {
+            /*
+            * data = {data:data,//已查到数据
+             err:err,//判断是否成功，执行结果,0表示成功,非0表示失败
+             }*/
+            uexDataBaseMgr.select(DatabaseOperate.config.db,sql, function (err,data) {
+                var queryData = null;
+                if (err) {
+                    // alert('执行失败');
+                    console.log("------------------------------查询数据：" + sql + " 查询失败 Start------------------------------------");
+                    console.log(err);
+                    console.log("------------------------------查询数据：" + sql + " 查询失败 End------------------------------------");
+                }
+                else
+                {
+                    console.log("------------------------------查询数据：" + sql + " 查询成功------------------------------------");
+                    queryData = data;
+                }
+
+                if(callbackFunc != null && callbackFunc != undefined)
+                {
+                    callbackFunc(queryData);
+                }
+
+
+            });
+        }
+        else
+        {
+            // alert("create Tb!");
+            DatabaseOperate.createTb(function (data) {
+                // alert("create Tb2!");
+                DatabaseOperate.query(sql,callbackFunc);
+            });
+        }
+
+
+        //数据库创建成功了为对象db，然后就可以直接用db执行查询操作了,查询user表中的所有用户信息
+        /*DatabaseOperate.config.db.select(sql,function(err,data,dataType,optId){
+         alert("query data: " + JSON.stringify({err:err,data:data,dataType:dataType,optId:optId}));
+
+         if(err){
+         //如果创建过程中出错了
+         console.log("------------------------------查询数据：" + sql + " 查询失败 Start------------------------------------");
+         console.log(err);
+         console.log("------------------------------查询数据：" + sql + " 查询失败 End------------------------------------");
+         return;
+         }
+         else if(data != null)
+         {
+         console.log("------------------------------查询数据：" + sql + " 查询成功------------------------------------");
+         if(callbackFunc != null && callbackFunc != undefined)
+         {
+         callbackFunc({err:err,data:data,dataType:dataType,optId:optId});
+         }
+
+         }
+         else
+         {
+         console.log("------------------------------查询数据：" + sql + " 查询失败------------------------------------");
+         }
+         //data中的值为sql返回的内容
+
+         });*/
+    },
+    /**
+     * 执行sql语句
+     * @param sql,//sql语句
+     * @param callbackFunc（data） function,//执行后的回调函数
+     data={err:err,data:data,dataType:dataType,optId:optId}
+     用返回的数据库对象，进行更新操作，sql要更新用的sql语句，callback是更新 返回的结果回调，
+     同样的callback(err,data,dataType,optId)第一个参数是Error对象如果为空则表示 没有错误，
+     否则表示操作出错了，data表示返回的操作结果,dataType操作结果的数据类型，optId该操作id
+     * **/
+    exec:function (sql,callbackFunc) {
+        if(DatabaseOperate.config.db != null)
+        {
+            uexDataBaseMgr.sql(DatabaseOperate.config.db,sql, function(err) {
+                if (!err) {
+                    // alert('执行成功');
+                    console.log("------------------------------SQL：" + sql + " 执行成功------------------------------------");
+
+                    if(callbackFunc != null && callbackFunc != undefined)
+                    {
+                        callbackFunc();
+                    }
+                }
+                else
+                {
+                    // alert('执行失败');
+                    console.log("------------------------------SQL：" + sql + " 执行失败 Start------------------------------------");
+                    console.log(err);
+                    console.log("------------------------------SQL：" + sql + " 执行失败 End------------------------------------");
+                }
+            });
+        }
+        else
+        {
+            DatabaseOperate.createTb(function (data) {
+                DatabaseOperate.exec(sql,callbackFunc);
+            });
+        }
+
+        //在指定的数据库上执行更新操作
+        /*appcan.database.exec({
+         name:DatabaseOperate.config.nameDB,
+         sql:sql,
+         callback:function(err,data,dataType,optId){
+         if(err){
+         alert("SQL Err 1");
+         //如果创建过程中出错了
+         console.log("------------------------------SQL：" + sql + " 执行失败 Start------------------------------------");
+         console.log(err);
+         console.log("------------------------------SQL：" + sql + " 执行失败 End------------------------------------");
+         return;
+
+         }
+         //data中的值为sql返回的内容
+         alert(data);
+         }
+         });*/
+
+        /*appcan.database.exec(DatabaseOperate.config.nameDB,sql,function (err,data,dataType,optId) {
+         if(err){
+
+         alert("SQL Err 1");
+         //如果创建过程中出错了
+         console.log("------------------------------SQL：" + sql + " 执行失败 Start------------------------------------");
+         console.log(err);
+         console.log("------------------------------SQL：" + sql + " 执行失败 End------------------------------------");
+         return;
+         }
+
+         alert(data);
+         });*/
+
+        /*appcan.ready(function() {
+         //数据库创建成功了为对象db，然后就可以直接用db执行更新操作了,删除userId为1的用户
+         DatabaseOperate.config.db.exec(sql,function(err,data,dataType,optId){
+         alert("data: " + JSON.stringify({err:err,data:data,dataType:dataType,optId:optId}));
+
+         if(err){
+
+         alert("SQL Err 1");
+         //如果创建过程中出错了
+         console.log("------------------------------SQL：" + sql + " 执行失败 Start------------------------------------");
+         console.log(err);
+         console.log("------------------------------SQL：" + sql + " 执行失败 End------------------------------------");
+         return;
+         }
+         if(data == 0){
+         alert("SQL success");
+         //执行成功了
+         console.log("------------------------------SQL：" + sql + " 执行成功------------------------------------");
+         if(callbackFunc != null && callbackFunc != undefined)
+         {
+         callbackFunc({err:err,data:data,dataType:dataType,optId:optId});
+         }
+
+         }else{
+         alert("SQL Err 2");
+         //执行失败了
+         console.log("------------------------------SQL：" + sql + " 执行失败------------------------------------");
+         }
+
+         });
+         });*/
+
+    },
+    /**
+     * 创建表
+     * * @param callbackFunc function,//回调函数
+     * **/
+    createTb:function (callbackFunc) {
+        setTimeout(function () {
+            DatabaseOperate.openOrCreateDB(function (data) {
+                if(data)
+                {
+                    for(var i = 0; i < DatabaseOperate.config.tables.length; i++)
+                    {
+                        // alert(DatabaseOperate.config.tables[i]);
+                        DatabaseOperate.exec(DatabaseOperate.config.tables[i]);
+                    }
+
+                    if(callbackFunc != null && callbackFunc != undefined)
+                    {
+                        callbackFunc(data);
+                    }
+                    /*var sql = "INSERT INTO tb_ctrl (service_Id,readed,time) VALUES ('fdss',1,'dfg')";
+                     DatabaseOperate.exec(sql);
+
+                     setTimeout(function () {
+                     var sql2 = "select * from tb_ctrl";
+                     DatabaseOperate.query(sql2,function (data) {
+                     // alert('data:' + JSON.stringify(data));
+                     });
+                     },3000);
+                     */
+                    //数据库创建成功可以使用了
+                }
+                else
+                {
+                    // alert("err");
+                    //数据库创建失败了
+                }
+            });
+        },0);
+    },
+    /**
+     * 插入数据
+     * @param table string，//表名
+     * @param insertData array，//insertData = [[key,value],[key,value]....] key是字段名，value是字段值
+     * @param callbackFunc function,//回调函数
+     * **/
+    insertTb:function (table,insertData, callbackFunc ) {
+        var sql = "INSERT INTO " + table + "(";
+        var values = " VALUES(";
+        for(var i = 0; i < insertData.length; i++)
+        {
+            if(i == (insertData.length - 1))
+            {
+                sql += "" + insertData[i][0] + ")";
+                values += "'" + insertData[i][1] + "')";
+            }
+            else
+            {
+                sql += "" + insertData[i][0] + ",";
+                values += "'" + insertData[i][1] + "',";
+            }
+
+        }
+
+        sql = sql + values;
+        DatabaseOperate.exec(sql,callbackFunc);
+
+    },
+    /**
+     * 插入数据，转化成sql
+     * @param table string,//表名
+     * @param keys Array,//数据需要传入插入的数据字段名
+     * @param values Array,//数据需要传入插入的数据字段值，如values
+     * @param callbackFunc function,//回调函数
+     * **/
+    insertTbConvert:function (table, keys, values, callbackFunc) {
+        /*var sql = "INSERT INTO tb_ctrl (service_Id,readed,time) VALUES (";*/
+        var insertData = [];
+        // var keys  = ['service_Id','readed','time','itemsTotal'];
+        for(var i = 0; i < values.length; i++)
+        {
+            var tmp = [];
+            tmp.push(keys[i]);
+            tmp.push(values[i]);
+            insertData.push(tmp);
+        }
+        DatabaseOperate.insertTb(table,insertData,callbackFunc);
+    },
+    /**
+     * 插入数据，表（tb_ctrl）
+     * @param values Array,//数据需要传入插入的数据，如values = [service_Id,readed,time,itemsTotal]
+     * @param callbackFunc function,//回调函数
+     * **/
+    insertToTbCtrl:function (values,callbackFunc) {
+        var keys  = ['service_Id','readed','time','itemsTotal'];
+        DatabaseOperate.insertTbConvert("tb_ctrl",keys, values,callbackFunc);
+    },
+    /**
+     * 插入数据，表（tb_attachment）
+     * @param values Array,//数据需要传入插入的数据，如values = ['task_Id','step_Id','fileUrl','attachInfo']
+     * @param callbackFunc function,//回调函数
+     * **/
+    insertToTbAttachment:function (values,callbackFunc) {
+        var keys  = ['task_Id','step_Id','fileUrl','attachInfo'];
+        DatabaseOperate.insertTbConvert("tb_attachment",keys, values,callbackFunc);
+
+    },
+    /**
+     * 查询表
+     * @param table string，//表名
+     * @param where string，//查询条件，如 where key = value; key是字段名，value是字段值
+     * * @param callbackFunc function,//回调函数
+     * **/
+    queryTb:function (table,where,callbackFunc) {
+        var sql = "select * from ";
+        if(where.indexOf("where") > 0)
+        {
+            sql = sql + table + " " + where;
+        }
+        else
+        {
+            sql = sql + table + " where " + where;
+        }
+
+        DatabaseOperate.query(sql,callbackFunc);
+    },
+    /**
+     * 查询表tb_ctrl，
+     * * @param where string,//查询条件
+     * * @param callbackFunc function,//回调函数
+     * **/
+    queryTbCtrl:function (where,callbackFunc) {
+        DatabaseOperate.queryTb('tb_ctrl', where, callbackFunc);
+    },
+    /**
+     * 查询表tb_attachment，
+     * * @param where string,//查询条件
+     * * @param callbackFunc function,//回调函数
+     * **/
+    queryTbAttachment:function (where,callbackFunc) {
+        DatabaseOperate.queryTb('tb_attachment', where, callbackFunc);
+    },
+    /**
+     * 更新表
+     * @param table string，//表名
+     * @param updateData array，//updateData = [[key,value],[key,value]....] key是字段名，value是字段值
+     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值;若不传，或为null,‘’空字符，则会更新数据表整个列
+     * @param callbackFunc function,//回调函数
+     *  **/
+    updateTb:function(table, updateData, where, callbackFunc){
+        var sql = "update " + table;
+        var x;
+        sql += " set ";
+        for (var i = 0; i < updateData.length; i++) {
+            x = updateData[i];
+            if (i == (updateData.length - 1)) {
+                sql += x[0] + "='" + x[1] + "'";
+            }
+            else {
+                sql += x[0] + "='" + x[1] + "', ";
+            }
+        }
+
+        if(where != null && where != undefined)
+        {
+            if(where.indexOf("where") > 0)
+            {
+                sql += " " + where;//alert(sql);
+            }
+            else
+            {
+                sql += " where " + where;//alert(sql);
+            }
+        }
+
+        DatabaseOperate.exec(sql,callbackFunc);
+
+    },
+    /**
+     * 更新表tb_ctrl
+     * @param updateData array，//updateData = [[key,value],[key,value]....] key是字段名，value是字段值
+     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值
+     * @param callbackFunc function,//回调函数
+     *  **/
+    updateTbCtrl:function (updateData, where, callbackFunc) {
+        DatabaseOperate.updateTb("tb_ctrl", updateData, where, callbackFunc);
+    },
+    /**
+     * 更新表tb_attachment
+     * @param updateData array，//updateData = [[key,value],[key,value]....] key是字段名，value是字段值
+     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值
+     * @param callbackFunc function,//回调函数
+     *  **/
+    updateTbAttachment:function (updateData, where, callbackFunc) {
+        DatabaseOperate.updateTb("tb_attachment", updateData, where, callbackFunc);
+    },
+    /**
+     * 删除表中数据
+     * * @param table string，//表名
+     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值;可以不传入，若没有传或传入‘’，空字符，则删除整个数据表
+     * * @param callbackFunc function,//回调函数
+     * **/
+    delData:function (table,where,callbackFunc) {
+        var sql = "delete from " + table;
+        if(where != null && where != undefined)
+        {
+            if(where.indexOf("where") > 0)
+            {
+                sql = sql + " " + where;
+            }
+            else
+            {
+                sql = sql +  " where " + where;
+            }
+        }
+
+        DatabaseOperate.exec(sql,callbackFunc);
+    },
+    /**
+     * 删除数据（表tb_attachment）
+     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值
+     * @param callbackFunc function,//回调函数
+     *  **/
+    delDataTbAttachment:function (where,callbackFunc) {
+        DatabaseOperate.delData("tb_attachment", where, callbackFunc);
+    },
+    /**
+     * 删除表
+     *  * * @param table string，//表名
+     * * @param callbackFunc function,//回调函数
+     * **/
+    delTb:function (table,callbackFunc) {
+        var sql = "drop table " + table;
+        DatabaseOperate.exec(sql,callbackFunc);
+    },
+    /**
+     * 删除数据库
+     * @param callbackFunc function,//回调函数
+     * **/
+    delDB:function (callbackFunc) {
+        var sql = "drop database " + DatabaseOperate.config.nameDB;
+        DatabaseOperate.exec(sql,callbackFunc);
+    }
+}
 
 
 
@@ -3164,125 +4980,6 @@ setTimeout(function () {
     pageParamTemp = pageParamTemp == null || pageParamTemp == 'null' ? {} : pageParamTemp;
 },0);
 
-/**
- * 扫描二维码和条形码,
- * func 扫描成功，回调函数 func(data);data为二维码扫描成功后的数据
- * 回传参数
- *
- * **/
-function scaner(func) {
-    // uexScanner.cbOpen = function(opCode, dataType, data){
-    //     alert(data);
-    // };
-    verifyPlatform(function () {
-        /**参数名称	参数类型	是否必选	说明
-         opId	Number	是	操作ID,open失败时为1,正常时为0,失败时一般是用户禁止了APP摄像头权限
-         dataType	Number	是	参数类型详见CONTANT中CallbackdataType数据类型
-         data	 扫描到的数据
-         data = {
-          code:, //二维码扫描得到的数据
-          type:，//二维码类型
-          }
-         **/
-        uexScanner.cbOpen = function(opId,dataType,data)
-        {
-            if(opId == 0)
-            {
-                func(JSON.parse(data));
-            }
-            else
-            {
-                toast("失败！请检查摄像头权限！");
-            }
-
-        }
-
-        uexScanner.open();
-    });
-}
-
-var filePathAuto = null;
-/**
- * 录音，（原生）
- *  *@param startRecord true开始录音，false停止录音
- *@param func录音成功回调函数
- * opId	Number	是	操作ID,在此函数中不起作用,可忽略
- dataType	Number	是	数据类型,详见CONSTENT中Callback dataType数据类型
- data	String	是	文件路径
- **/
-function takeAuto(startRecord,func) {
-    // uexAudio.cbRecord(opId,dataType,data);
-    // uexAudio.cbRecord = function(opCode, dataType, data){
-    //     alert(data);
-    //     autoPath = data;
-    // };
-    // uexAudio.cbRecord = func;
-    // uexAudio.record(2,'20153343443');
-
-    verifyPlatform(function () {
-        if(startRecord){
-            // uexAudio.cbBackgroundRecord = func;
-            uexAudio.cbBackgroundRecord = function(opCode, dataType, data){
-                filePathAuto = data;
-                func(opCode, dataType, data);
-            };
-            uexAudio.startBackgroundRecord(2);
-        }
-        else
-        {
-
-            uexAudio.stopBackgroundRecord();
-        }
-    });
-}
-
-/**
- * 播放或关闭录音，（原生）
- *  *@param ctrl 0 开始播放，1 暂停播放，2 重新播播，3 停止播放
- *  @param filePath null时播放录音的音频
- **/
-function playAuto(ctrl,filePath) {
-
-    verifyPlatform(function () {
-        if(filePath == null){
-            if(filePathAuto == null){
-                alr2("录音为空");
-                return;
-            }
-            filePath = filePathAuto;
-
-        }
-
-        switch (ctrl)
-        {
-            case 0:{
-                //开始播放
-                // alert("filePath:  " + filePath);
-                uexAudio.open(filePath);
-                // alert("ds");
-                uexAudio.play(0);
-                // alert("ds1");
-                break;
-            }
-            case 1:{
-                //暂停播放
-                // alert("ds2");
-                uexAudio.pause();
-                break;
-            }
-            case 2:{
-                //重新播播
-                uexAudio.replay();
-                break;
-            }
-            case 3:{
-                //停止播放
-                uexAudio.stop();
-                break;
-            }
-        }
-    });
-}
 
 /**
  * file代表系统路径例如file://sdcard
@@ -3296,363 +4993,10 @@ function playAuto(ctrl,filePath) {
 var unzipPathAndroid = "wgt://unzip";//android解压路径
 var unzipPathIOS = "/storage/emulated/0/widgetone/apps/001/unzip";//苹果解压路径*/
 
-/**
- * 地理定位 （JS）
- * @param open为true就是打开定位，false就是关闭定位
- * @param func，回调函数判断是否打开成功，成功时回调 func (error, data)，
- * func (error, data) {
-      if(!error){
-        alert(JSON.stringify(data));
-      }else{
-        alert(error);
-      }
-    }
- * **/
-function getLocationJS(func) {
-    if (navigator.geolocation) {alert("定位");
-        navigator.geolocation.getCurrentPosition((position) => {alert(JSON.stringify(position));
-            func(position);
-        }, (error) => {
-            alert("失败");
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    alert("定位失败,用户拒绝请求地理定位");
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    // alert("定位失败,位置信息是不可用");
-                    alert("定位失败,请为app打开定位权限");
-                    break;
-                case error.TIMEOUT:
-                    alert("定位失败,请求获取用户位置超时");
-                    break;
-                default: alert("请检查是否打开定位权限！");
-            }
-        });
-    }
-    else {
-        alert("不支持定位");
-    }
-}
-
-/**
- * 地理定位操作 （原生）
- * @param open为true就是打开定位，false就是关闭定位
- * **/
-var locationOperate ={
-    locationData:getJsonData("location"),
-    /**
-     * 得到定位
-     * * @param funcChange function,//地理位置变化时回调 funcChange(json),//json = json = {
-                                lat:'纬度',
-                                log:‘经度’
-                            }
-     * @param func，（可funct以不传入）回调函数判断是否打开成功，成功时回调 func (json)，此获取地址详细信息
-     *@param isPrompt 是否显示‘正在定位.............’ 不传（undefined）显示，传入不显示
-     * json = {
- err:,
-  addressInfo:
- }
-     *
-     参数名称	类型	说明
-     err	Number	0表示获取成功,非0表示获取失败
-     addressInfo	Json	获取成功时的具体地址信息,flag非1时,返回地址名称字符串;为1时,返回Json对象,形式见下:
-
-     addressInfo = {
-    "formatted_address": "北京市海淀区海淀中街15号",
-    "location": {
-        "lat": 39.983197,
-        "lng": 116.317383
-    },
-    "addressComponent": {
-        "province": "北京市",
-        "street_number": "15号",
-        "district": "海淀区",
-        "street": "海淀中街",
-        "city": "北京市"
-    }
-}
-     * func (error, data) {
-      if(!error){
-        alert(JSON.stringify(data));
-      }else{
-        alert(error);
-      }
-    }**/
-    getLocation:function (func,funcChange,isPrompt) {
-        verifyPlatform(function () {
-
-            /*type	String	否	指定坐标系类型,"wgs84":采用世界标准经纬度坐标;"bd09":采用百度地图的经纬度坐标;"gcj02":采用高德地图的经纬度坐标.不传,iOS默认返回高德地图的经纬度坐标,Android默认返回百度地图的经纬度坐标
-             callBackFunction（error）	Function	是	回调函数,返回打开定位功能是否成功
-             error	Number	是	为0时,打开定位成功;非0时,打开失败*/
-            // uexLocation.openLocation(type,callBackFunction);
-
-            /* uexLocation.onChange(lat, log); //设备位置变化的监听方法
-             uexLocation.onChange = function(lat, log)
-             lat	Number	是	纬度
-             log	Number	是	经度
-             */
-            // alert("打开地理定位");
-            //打开地理定位
-            uexLocation.openLocation("bd09",function (err) {
-                if(isPrompt == undefined)
-                {
-                    toast("正在定位......");
-                }
-                // alert("err:  " + err + "  err ："  + err);
-                if(!err)
-                {
-                    uexLocation.onChange = function (lat,log) {
-                        // alert("完成");
-                        locationOperate.closeLocation();
-                        // localStorage["isOpenLocation"] = 1;//打开
-                        // alert("lat:  " + lat + "  log ："  + log);
-                        var location = {
-                            lat:lat,
-                            log:log
-                        }
 
 
-                        if(funcChange != null && funcChange != undefined)
-                        {
-                            var json = {
-                                lat:lat,
-                                log:log
-                            };
-                            if(funcChange != null && funcChange != undefined)
-                            {
-                                funcChange(json);
-                            }
 
-                        }
 
-                        if(func != null && func != undefined)
-                        {
-                            /**latitude	Number	是	纬度
-                             longitude	Number	是	经度
-                             type	String	否	指定传入经纬度所采用坐标系类型,"wgs84":采用世界标准经纬度坐标;"bd09":采用百度地图的经纬度坐标;"gcj02":采用高德地图的经纬度坐标.不传,iOS默认采用世界标准的经纬度坐标,Android默认采用百度地图的经纬度坐标
-                             flag	Number	是	值为1时返回地址详情(JSON格式), 非 1 时返回地址名称
-                             * **/
-                            var params = {
-                                latitude: lat,
-                                longitude: log,
-                                type: "bd09",
-                                flag:1
-                            };
-                            // alert("ds");
-                            uexLocation.getAddressByType(params, function (err,addressInfo) {
-                                var jsonObj = {
-                                    err:err,//错误原因
-                                    addressInfo:addressInfo,//地址信息
-                                    lat:location.lat,
-                                    log:location.log
-                                };
-
-                                setJsonData("location",jsonObj);
-                                if(func != null && func != undefined)
-                                {
-                                    func(jsonObj);
-                                }
-
-                            });
-                        }
-                    };
-                }
-                // else if(localStorage["isOpenLocation"] != 1)
-                else
-                {
-                    // alr2("请为app授予定位权限");
-                    if(isPrompt == undefined)
-                    {
-                        locationOperate.isStartLocationService();
-                    }
-                }
-
-            });
-
-        });
-    },
-    /**关闭定位
-     * **/
-    getLocationHide:function (func,funcChange) {
-        // if(funcChange == undefined)
-        // {
-        //     funcChange = undefined;
-        // }
-        locationOperate.getLocation(func,funcChange,true);
-    },
-    closeLocation:function () {
-        verifyPlatform(function () {
-            uexLocation.closeLocation();
-        });
-    },
-    /**获取逆地址（地理地址）
-     * @param location,//位置location={lat:'纬度',log:'经度'}
-     * @param callbackFunc,//回调函数
-     * 成功时回调 callbackFunc (json)，此获取地址详细信息
-     *json = {
- err:,
-  addressInfo:
- }
-     *
-     参数名称	类型	说明
-     error	Number	0表示获取成功,非0表示获取失败
-     addressInfo	Json	获取成功时的具体地址信息,flag非1时,返回地址名称字符串;为1时,返回Json对象,形式见下:
-
-     addressInfo = {
-    "formatted_address": "北京市海淀区海淀中街15号",
-    "location": {
-        "lat": 39.983197,
-        "lng": 116.317383
-    },
-    "addressComponent": {
-        "province": "北京市",
-        "street_number": "15号",
-        "district": "海淀区",
-        "street": "海淀中街",
-        "city": "北京市"
-    }
-}
-     * func (error, data) {
-      if(!error){
-        alert(JSON.stringify(data));
-      }else{
-        alert(error);
-      }
-    }
-     * **/
-    getGeoAddress:function (loaction,callbackFunc) {
-        verifyPlatform(function () {
-            /**latitude	Number	是	纬度
-             longitude	Number	是	经度
-             type	String	否	指定传入经纬度所采用坐标系类型,"wgs84":采用世界标准经纬度坐标;"bd09":采用百度地图的经纬度坐标;"gcj02":采用高德地图的经纬度坐标.不传,iOS默认采用世界标准的经纬度坐标,Android默认采用百度地图的经纬度坐标
-             flag	Number	是	值为1时返回地址详情(JSON格式), 非 1 时返回地址名称
-             * **/
-            var params = {
-                latitude: loaction.lat,
-                longitude: loaction.log,
-                type: "bd09",
-                flag:1
-            };
-            uexLocation.getAddressByType(params, function (err,addressInfo) {
-                var jsonObj = {
-                    err:err,//错误原因
-                    addressInfo:addressInfo,//地址信息
-                }
-                if(callbackFunc != null && callbackFunc != undefined)
-                {
-                    callbackFunc(jsonObj);
-                }
-            });
-        });
-    },
-    /**是否开启位置服务
-     * **/
-    isStartLocationService:function () {
-        var params = {
-            setting:"GPS"//位置服务功能
-        };
-        /** data	true开启,false未开启**/
-        uexDevice.isFunctionEnable(JSON.stringify(params), function(data) {
-            if (data) {
-                // alert('已开启');
-            } else {
-                // alert('未开启');
-                alrBtn22("请开启位置服务",function () {
-
-                    uexDevice.openSetting(JSON.stringify(params));
-                });
-            }
-        });
-    }
-}
-
-function getLocation(open,funcChange,func,param) {
-    verifyPlatform(function () {
-        appcan.ready(function () {
-            /*type	String	否	指定坐标系类型,"wgs84":采用世界标准经纬度坐标;"bd09":采用百度地图的经纬度坐标;"gcj02":采用高德地图的经纬度坐标.不传,iOS默认返回高德地图的经纬度坐标,Android默认返回百度地图的经纬度坐标
-             callBackFunction（error）	Function	是	回调函数,返回打开定位功能是否成功
-             error	Number	是	为0时,打开定位成功;非0时,打开失败*/
-            // uexLocation.openLocation(type,callBackFunction);
-            if(open)
-            {
-                /* uexLocation.onChange(lat, log); //设备位置变化的监听方法
-                 uexLocation.onChange = function(lat, log)
-                 lat	Number	是	纬度
-                 log	Number	是	经度
-                 */
-                // alert("打开地理定位");
-                //打开地理定位
-                uexLocation.openLocation("bd09",function (err) {
-                    // alert("err:  " + err + "  err ："  + err);
-                    if(!err)
-                    {
-                        uexLocation.onChange = function (lat,log) {
-                            // alert("lat:  " + lat + "  log ："  + log);
-                            var location = {
-                                lat:lat,
-                                log:log
-                            }
-                            setJsonData("location",location);
-
-                            if(funcChange != null && funcChange != undefined)
-                            {
-                                var json = {
-                                    lat:lat,
-                                    log:log
-                                };
-                                if(funcChange != null && funcChange != undefined)
-                                {
-                                    funcChange(json);
-                                }
-
-                            }
-
-                            if(func != null && func != undefined)
-                            {
-                                /**latitude	Number	是	纬度
-                                 longitude	Number	是	经度
-                                 type	String	否	指定传入经纬度所采用坐标系类型,"wgs84":采用世界标准经纬度坐标;"bd09":采用百度地图的经纬度坐标;"gcj02":采用高德地图的经纬度坐标.不传,iOS默认采用世界标准的经纬度坐标,Android默认采用百度地图的经纬度坐标
-                                 flag	Number	是	值为1时返回地址详情(JSON格式), 非 1 时返回地址名称
-                                 * **/
-                                var params = {
-                                    latitude: lat,
-                                    longitude: log,
-                                    type: "bd09",
-                                    flag:1
-                                };
-                                uexLocation.getAddressByType(params, function (err,dataReturn) {
-                                    var jsonObj = {
-                                        err:err,//错误原因
-                                        dataReturn:dataReturn,//地址信息
-                                    }
-                                    if(func != null && func != undefined)
-                                    {
-                                        func(jsonObj);
-                                    }
-
-                                });
-                            }
-                        };
-                    }
-                    else
-                    {
-                        alr2("请为app授予定位权限");
-                    }
-
-                });
-
-            }
-            else if(open == 1)
-            {
-                uexLocation.getAddressByType(params, func);
-            }
-            else
-            {
-                uexLocation.closeLocation()
-            }
-        });
-    });
-}
 
 /**
  * 日历 (原生)
@@ -3891,348 +5235,7 @@ function drawChart(tag, ctrl) {
 
 }
 
-/**
- * 加载百度地图（js）
- * **/
-var baiduGeoMapCtrl = {
-    //初始化地图所需数据
-    config:{
-        map:null,//BMap.Map,百度地图实例
-        idTag:'allmap',//显示地图区的标签id ,不允许自定义标签id
-        location:{ //地图位置
-            log:113.312213, //经度
-            lat:23.147267,//纬度
-        },
-        markerArr:[],/*标注数据列,数据格式：
-         var markerArrs = [
-         { title: "广州火车站", location: {log:113.264531,lat:23.157003}, address: "广东省广州市广州火车站", tel: "12306",html:null },
-         { title: "广州塔（赤岗塔）", location: {log:113.330934,lat:23.113401}, address: "广东省广州市广州塔（赤岗塔） ", tel: "18500000000",html:null },
-         { title: "广州动物园", location: {log:113.312213,lat:23.147267}, address: "广东省广州市广州动物园", tel: "18500000000",html:null },
-         { title: "天河公园", location: {log:113.372867,lat:23.134274}, address: "广东省广州市天河公园", tel: "18500000000",html:null }
 
-         ];*/
-
-        infos:[],//弹出气泡窗口
-        markersObjLst:[],//标注对象列
-    },
-    //添加script
-    loadJScript:function () {
-        var script = document.createElement("script");
-        script.type = "text/javascript";
-        script.src = "http://api.map.baidu.com/api?v=2.0&ak=C93b5178d7a8ebdb830b9b557abce78b&callback=baiduGeoMapCtrl.init";
-        document.body.appendChild(script);
-    },
-    //初始化地图
-    init:function () {
-        // alert(JSON.stringify(baiduGeoMapCtrl.config));
-        var map = null;
-        if(baiduGeoMapCtrl.config.map == null)
-        {
-            map = new BMap.Map(baiduGeoMapCtrl.config.idTag);            // 创建Map实例
-
-        }
-        else
-        {
-            map = baiduGeoMapCtrl.config.map;
-        }
-        // alert(JSON.stringify(baiduGeoMapCtrl.config));
-        var point = new BMap.Point(baiduGeoMapCtrl.config.location.log, baiduGeoMapCtrl.config.location.lat); // 创建点坐标
-        // map.addControl(new BMap.MapTypeControl());   //添加地图类型控件
-        // map.centerAndZoom(point,15);
-        map.centerAndZoom(point, 13);   // 初始化地图,设置中心点坐标和地图级别。
-        map.enableScrollWheelZoom();                 //启用滚轮放大缩小
-
-        //添加标注
-        {
-            var markerArr =  baiduGeoMapCtrl.config.markerArr;
-
-            // point[0] = new window.BMap.Point(113.264531,23.157003); //循环生成新的地图点
-            for(var i = 0; i < markerArr.length; i++)
-            {
-                var marker = new window.BMap.Marker((new window.BMap.Point(markerArr[i].location.log,markerArr[i].location.lat))); //按照地图点坐标生成标记
-
-                // marker.setAnimation(BMAP_ANIMATION_BOUNCE); //跳动的动画
-                var label = new window.BMap.Label(markerArr[i].title, { offset: new window.BMap.Size(20, -60) });
-                label.setStyle({ //给label设置样式，任意的CSS都是可以的
-
-                    // "color":"red", //颜色
-
-                    "fontSize":"50px", //字号
-
-                    // "border":"0", //边
-
-                    // "height":"120px", //高度
-
-                    // " width":"125px", //宽
-
-                    // "textAlign":"center", //文字水平居中显示
-
-                    // "lineHeight":"120px", //行高，文字垂直居中显示
-
-                    // "background":"url(http://cdn1.iconfinder.com/data/icons/CrystalClear/128x128/actions/gohome.png)", //背景图片，这是房产标注的关键！
-
-                    // "cursor":"pointer"
-
-                });
-
-                var myicon = new window.BMap.Icon(
-                    // '../../images/point.png', // 图片
-                    'http://api.map.baidu.com/img/markers.png',
-                    new BMap.Size(66,100), // 视窗大小
-                    {
-                        imageSize: new BMap.Size(144,1292), // 引用图片实际大小
-                        imageOffset:new BMap.Size(0, -1094)  // 图片相对视窗的偏移
-                    }
-                );
-                // var marker = new BMap.Marker(point,{icon:myicon});
-                marker.setLabel(label);
-                marker.setIcon(myicon);
-                baiduGeoMapCtrl.config.markersObjLst.push(marker);
-                map.addOverlay(marker);//添加标注
-
-                // baiduGeoMapCtrl.config.infos.push(info);
-                baiduGeoMapCtrl.addClickHandler(i,marker);
-
-                /*markers[i].addEventListener("click", function (e) {
-                    // alert("e");alert(e.target);
-
-                    // var p = e.target;
-                    // var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat);
-                    // var infoWindow = new BMap.InfoWindow(info,opts);  // 创建信息窗口对象
-                    // map.openInfoWindow(infoWindow,point); //开启信息窗口
-
-                    // this.openInfoWindow(info);
-                });*/
-
-
-
-            }
-
-        }
-
-        baiduGeoMapCtrl.config.map = map;
-    },
-    /**加载百度地图
-     * @param location json,//地图位置
-     * location = {
-        log:int,//经度
-        lat:int,//纬度
-       }
-     @param markerArr json,//弹出气泡html数组
-     markerArr = [{
-     title: "广州火车站",//显示标志
-      location: {log:113.264531,lat:23.157003},//地图位置
-      html:null,//弹出气泡信息
-     }]
-     * **/
-    load:function (location,markerArr) {
-
-        if(location != null || location != undefined){
-            baiduGeoMapCtrl.config.location = location;
-        }
-        if(markerArr != null || markerArr != undefined)
-        {
-            baiduGeoMapCtrl.config.markerArr = markerArr;
-            // console.info("baiduGeoMapCtrl.config.markerArr: ",markerArr);
-        }
-        // window.onload = baiduGeoMapCtrl.loadJScript;  //异步加载地图 window.onload :页面加载完立马触发
-        baiduGeoMapCtrl.loadJScript();
-    },
-    addClickHandler:function(infoId,marker){
-        // alert("fd");
-        marker.addEventListener("click",function(e){
-            // alert("fd 1");alert(JSON.stringify(baiduGeoMapCtrl.config.markerArr[infoId]));
-            // var fourOpts = {
-            //     width:1100,
-            //     height:1200
-            // };
-
-            var fourOpts = {
-                width:500,
-                height:1500
-            };
-            this.openInfoWindow(new window.BMap.InfoWindow(baiduGeoMapCtrl.config.markerArr[infoId].html,fourOpts));
-            // this.openInfoWindow(baiduGeoMapCtrl.config.infos[infoId]);
-        });
-    },
-    /**根据地点和地址搜索，跳动显示搜索到的位置
-     * @param data string,地点或地址
-     */
-    search:function (data) {
-        var mArr = baiduGeoMapCtrl.config.markerArr;
-        for(var i = 0; i < mArr.length; i++){
-            if(mArr[i].title.indexOf(data) > -1 || mArr[i].address.indexOf(data) > -1)
-            {
-                // alert("yes " + i);
-                baiduGeoMapCtrl.config.markersObjLst[i].setAnimation(BMAP_ANIMATION_BOUNCE); //跳动的动画
-
-            }
-            else
-            {
-                // alert("no " + i);
-                baiduGeoMapCtrl.config.markersObjLst[i].setAnimation(null); //取消动画
-            }
-        }
-
-    },
-    openInfo:function (content,e, opts) {
-
-        // alert("content:" + content);
-        baiduGeoMapCtrl.config.map.openInfoWindow(baiduGeoMapCtrl.config.infos[0]);
-        // var p = e.target;
-        // var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat);
-        // var infoWindow = new BMap.InfoWindow(content + "",opts);  // 创建信息窗口对象
-        // baiduGeoMapCtrl.config.map.openInfoWindow(infoWindow,point); //开启信息窗口
-    }
-}
-
-/**
- * 加载百度地图（原生）
- * @param ctrl int ;0打开地图，1关闭地图,2设置地图的中心点,3添加标注,4更新标注
- * * @param json json,//地图位置,若ctrl = 0,
- * json = {
-        log:int,//经度
-        lat:int,//纬度
-       }*
- 若 ctrl = 2
- id	String	否	唯一标识符,不传时插件随机生成
- longitude	Number	是	经度
- latitude	Number	是	纬度
- icon	String	否	标注图标路径,支持类型:"res://""http://"
- bubble	String	否	自定义弹出气泡
- title	String	是	自定义弹出气泡标题
- bgImage	String	否	自定义弹出气泡背景图片,格式:res://btn.png
- json=[
- {
-     id:,
-     longitude:,
-     latitude:,
-     icon:,
-     bubble:{
-          title:,
-          bgImage:
-     }
- }
- ]，
- 若ctrl = 4,
- json={
-    id:,
-    longitude:,
-    latitude:,
-    icon:,
-    bubble:{
-        title:,
-        bgImage:
-    }
- * @param func function ;打开地图后的回传参数
- * **/
-function baiduGeoMapCtrlNative(ctrl, json, func) {
-    switch (ctrl)
-    {
-        case 0:
-        {
-            /*
-             x	Number	是	x坐标
-             y	Number	是	y坐标
-             width	Number	是	地图宽度
-             height	Number	是	地图高度
-             longitude	Number	是	地图中心点经度
-             latitude	Number	是	地图中心点纬度
-             callbackFunction	Function	否	地图打开后的回调
-             x,y,width,height 的单位均为px
-             (x,y)表示地图左上角的坐标
-             uexBaiduMap.open(x,y,width,height,longitude,latitude, callbackFunction)
-              */
-
-            uexBaiduMap.open(0,0,screen.width,screen.height,json.log,json.lat, func);
-            uexBaiduMap.setZoomEnable(1);//开启或关闭缩放，0-关闭,1-开启
-            uexBaiduMap.setRotateEnable(1);////开启或关闭旋转，0-关闭,1-开启
-            uexBaiduMap.setCompassEnable(1);//开始或关闭指南针，0-关闭,1-开启
-            uexBaiduMap.setScrollEnable(1); //开启或关闭平移，0-关闭,1-开启
-            /* uexBaiduMap.addMarkersOverlay(json);//添加标注
-            var json=[
-                {
-                    id:,
-                    longitude:,
-                    latitude:,
-                    icon:,
-                    bubble:{
-                        title:,
-                        bgImage:
-                    }
-                }
-            ]
-            id	String	否	唯一标识符,不传时插件随机生成
-            longitude	Number	是	经度
-            latitude	Number	是	纬度
-            icon	String	否	标注图标路径,支持类型:"res://""http://"
-            bubble	String	否	自定义弹出气泡
-            title	String	是	自定义弹出气泡标题
-            bgImage	String	否	自定义弹出气泡背景图片,格式:res://btn.png
-        */
-            break;
-        }
-        case 1:
-        {
-            //关闭地图
-            uexBaiduMap.close();
-            break;
-        }
-        case 2:
-        {
-            //设置地图的中心点
-            uexBaiduMap.setCenter(json.log,json.lat);
-            break;
-        }
-        case 3:
-        {
-            /**添加标注
-             * @param json ,标注数组
-             * var json=[
-             {
-                 id:,
-                 longitude:,
-                 latitude:,
-                 icon:,
-                 bubble:{
-                      title:,
-                      bgImage:
-                 }
-             }
-             ]
-             * 添加到地图的标注信息的集合.该字符串为JSON格式.如下:**/
-            uexBaiduMap.addMarkersOverlay(json);
-            break;
-        }
-        case 4 :
-        {
-            /**
-             * uexBaiduMap.setMarkerOverlay(makerId,makerInfo);
-             makerId	String	是	唯一标识符
-             makerInfo	String	是	标注信息,json格式，形式见下：
-             var makerInfo={
-    longitude:,
-    latitude:,
-    icon:,
-    bubble:{
-        title:,
-        bgImage:
-    }
-}
-             longitude	Number	是	标注经度
-             latitude	Number	是	标注纬度
-             icon	String	否	标注图标
-             bubble	Object	是	气泡设置
-             title	String	是	气泡标题
-             bgImage	String	否	气泡背景图片
-             示例
-             * **/
-            uexBaiduMap.setMarkerOverlay(json.id,json);
-            break;
-        }
-
-    }
-}
 
 /**
  * 异步加载js文件
@@ -4262,342 +5265,7 @@ function asyncLoaded(url, callBack) { /*url为js的链接，callBack为url的js�
     // return "jj";
 }
 
-/**
- * 极光推送 （原生）
- * **/
-var jPush = {
-    /**配置信息
-     *@param tags 极光推送标签；为安装了应用程序的用户打上标签，其目的主要是方便开发者根据标签，
-     来批量下发 Push 消息。 可为每个用户打多个标签。 举例： game, old_page, women
-     * @param alias 极光推送别名;每个用户只能指定一个别名。 同一个应用程序内，
-     对不同的用户，建议取不同的别名。这样，尽可能根据别名来唯一确定用户。
-     * @param ;客户端初始化 JPush 成功后，JPush 服务端会分配一个 Registration ID，
-     作为此设备的标识（同一个手机不同 APP 的 Registration ID 是不同的）。
-     开发者可以通过指定具体的 Registration ID 来进行对单一设备的推送。
-     * **/
-    config:{
-        alias:accountInfo() == null ? 'lexin' : userInfoData.id == '' ? 'lexin' : userInfoData.id,//极光推送别名,
-        tags:userInfoData == null ? ['lexin'] : userInfoData.tags == undefined || userInfoData.tags == null || userInfoData.tags == ''?  ['lexin'] : userInfoData.tags,//极光推送标签 array
-        registrationID:null,//JPush 服务端会分配一个 Registration ID 注册id
-        // registrationID:uexJPush.getRegistrationID(),//取得应用程序对应的 RegistrationID
-        receiveMessageFunc:null,//收到了自定义消息处理回调函数
-        receiveNotificationFunc:null,//接收到到通知的回调函数
-        receiveNotificationOpenFunc:null,//点击打开通知的回调函数
-        receiveConnectionChangeFunc:null,//连接状态变化回调函数
-        receiveNotPushFunc:null,//禁止推送时回调函数
-    },
-    /**setAlias //设置别名,别名:用于给某特定用户推送消息。别名，可以近似地被认为，是用户帐号里的昵称。
-     * @param alias	 string,//是	,传入参数 //String 设置的别名
-     @param callBackFunction	Function	是	回调函数,callBackFunction(error,data)
-     error	Number	是	0-成功,非0-失败 具体失败代码解释见文末附录
-     data	Object	是	回调数据,形式见下:
-     **/
-    setAlias:function (callbackFunction,alias) {
-        jPush.config.alias = alias == undefined || alias == null ? jPush.config.alias : alias;
-        uexJPush.setAlias({alias:jPush.config.alias}, function (err,info) {
-            /**info = {
-            alias://设置的别名
-              };
-             * **/
-            if(err == 0)
-            {
 
-                if(callbackFunction != undefined && callbackFunction != null)
-                {
-                    callbackFunction(info);
-                }
-            }
-            else
-            {
-                toast("别名设置失败");
-            }
-
-        });
-    },
-    /**设置标签,标签:用于给某一群人推送消息。标签类似于博客里为文章打上 tag ，即为某资源分类。
-     * @param tags string,//设置标签
-     * @param callbackFunction function,//回调函数 callbackFunction（error，data）
-     error	Number	是	0-成功,非0-失败 具体失败代码解释见文末附录
-     data	Object	是	回调数据，形式见下:
-     * **/
-    setTags:function (callbackFunction,tags) {
-        jPush.config.tags = tags == undefined || tags == null ? jPush.config.tags : tags;
-        jPush.config.tags = jPush.config.tags.constructor == Array ? jPush.config.tags : [jPush.config.tags];
-        uexJPush.setTags({tags:jPush.config.tags}, function (err,info) {
-            /**info = {
-            tags://设置的标签
-              };
-             * **/
-            if(err == 0)
-            {
-                if(callbackFunction != undefined && callbackFunction != null)
-                {
-                    callbackFunction(info);
-                }
-            }
-            else
-            {
-                toast("标签设置失败");
-            }
-        });
-    },
-    /**同时设置别名与标签, 执行完成后回调callbackFunction
-     * @param json	Object	是	传入参数
-     json={
-    alias:,//string 设置的别名
-    tags:,//Set<String> 设置的标签
-    }
-     @param callBackFunction	Function	是	回调函数 callbackFunction（error，data）
-     error	Number	是	0-成功,非0-失败 具体失败代码解释见文末附录
-     data	Object	是	回调数据,形式见下:
-     * **/
-    setAliasAndTags:function (callbackFunction,json) {
-        verifyPlatform(function () {
-            if(isPush)
-            {
-                var aTJson = {
-                    tags:json != undefined ? json.tags != undefined ? json.tags : jPush.config.tags : jPush.config.tags,
-                    alias:json != undefined ? json.alias != undefined ? json.alias : jPush.config.alias : jPush.config.alias
-                };
-                aTJson.tags = aTJson.tags.constructor == Array ? aTJson.tags : [aTJson.tags];
-                jPush.config.tags = aTJson.tags;
-                jPush.config.alias = aTJson.alias;
-                uexJPush.setAliasAndTags(aTJson, function (err,info) {
-                    /**info = {
-                alias://设置的别名
-                tags://设置的标签
-                };**/
-                    if(err == 0)
-                    {
-                        if(callbackFunction != undefined && callbackFunction != null)
-                        {
-                            // alert("info:" + JSON.stringify(info));
-                            callbackFunction(info);
-                        }
-                        // uexJPush.resumePush();//恢复推送服务
-                    }
-                    else
-                    {
-                        toast("别名和标签设置失败");
-                    }
-                });
-            }
-
-        });
-    },
-    //取得应用程序对应的 RegistrationID
-    getRegistrationID:function () {
-        return uexJPush.getRegistrationID();
-    },
-    /**开始极光推送服务
-     * @param configJson json,//设置标签和别名，可为null;json={
-                 alias:,//string 设置的别名
-                 tags:,//Set<String> 设置的标签
-               }
-     * @param callbackJson json,//回调用函数json对象
-     callbackJson = {
-               receiveMessageFunc:null,//收到了自定义消息处理回调函数
-               receiveNotificationFunc:null,//接收到到通知的回调函数
-               receiveNotificationOpenFunc:null,//点击打开通知的回调函数
-               receiveConnectionChangeFunc:null,//连接状态变化回调函数
-               receiveNotPushFunc:null,//禁止推送时回调函数
-         }
-     * **/
-    startJPush:function (callbackJson,configJson) {
-        // alert("SD");
-        window.uexOnload = function(type){
-
-            if(DeviceOperate.config.onloadFunc != null)
-            {
-                DeviceOperate.config.onloadFunc(isPush);
-            }
-
-            verifyPlatform(function () {
-                if(isPush)
-                {
-                    jPush.config.alias = configJson != undefined && configJson != null
-                        ? configJson.alias == undefined
-                            ? jPush.config.alias : configJson.alias : jPush.config.alias;
-                    jPush.config.tags = configJson != undefined && configJson != null
-                        ?  configJson.tags == undefined
-                            ? jPush.config.tags : configJson.tags : jPush.config.tags;
-
-                    jPush.config.receiveMessageFunc = callbackJson != undefined && callbackJson != null
-                        ?  callbackJson.receiveMessageFunc == undefined
-                            ? jPush.config.receiveMessageFunc : callbackJson.receiveMessageFunc : jPush.config.receiveMessageFunc;
-                    jPush.config.receiveNotificationFunc = callbackJson != undefined && callbackJson != null
-                        ?  callbackJson.receiveNotificationFunc == undefined
-                            ? jPush.config.receiveNotificationFunc : callbackJson.receiveNotificationFunc : jPush.config.receiveNotificationFunc;
-                    jPush.config.receiveNotificationOpenFunc = callbackJson != undefined && callbackJson != null
-                        ?  callbackJson.receiveNotificationOpenFunc == undefined
-                            ? jPush.config.receiveNotificationOpenFunc : callbackJson.receiveNotificationOpenFunc : jPush.config.receiveNotificationOpenFunc;
-                    jPush.config.receiveConnectionChangeFunc = callbackJson != undefined && callbackJson != null
-                        ?  callbackJson.receiveConnectionChangeFunc == undefined
-                            ? jPush.config.receiveConnectionChangeFunc : callbackJson.receiveConnectionChangeFunc : jPush.config.receiveConnectionChangeFunc;
-
-                    /**增量更新回掉函数
-                     * **/
-                    uexUpdate.onWidgetPatchUpdate = function (opId,dataType,data){
-                        var obj = JSON.parse(data);
-                        // alert("已完成更新，请重启: " +  JSON.stringify(obj));
-                        if(obj.status=="ok")
-                        {
-                            /*toast("正在配置重启动",{
-                                duration:2000,
-                                type:1
-                            });*/
-
-                            setTimeout(function () {
-
-                                alrBtn("更新完成","是否重启，重启会黑屏一段时间，不要关闭哦！",['否', '是'],function () {
-                                    uexWidgetOne.restart();
-                                });
-
-                            },3000);
-                            // alert("已完成更新，请重启");
-                            //appcan.frame.open('content',"popOver_content.html",'0',titHeight,'newWin');
-                            // uexWidgetOne.exit(0);
-                        }
-                    }
-
-                    /**ios app桌面图标右上角气泡 显示未读数,设置默认值**/
-                    uexJPush.setBadgeNumber(0);
-
-                    jPush.setAliasAndTags();
-
-                    /**应用程序注册监听
-                     * var json={
-                            title:,//RegistrationID
-                          };
-                     * **/
-                    uexJPush.onReceiveRegistration = function (info) {
-                        info = JSON.parse(info);
-                        // alert("RegistrationID: " + JSON.stringify(info));
-                        jPush.config.registrationID = info.title;
-
-                    };
-
-                    /**收到了自定义消息
-                     * var json={
-                             message:,//String 对应 Portal 推送消息界面上的"自定义消息内容"字段
-                             extras:,// 对应 Portal 推送消息界面上的"可选设置"里的附加字段
-                    };
-                     * **/
-                    uexJPush.onReceiveMessage = function (info) {
-                        info = JSON.parse(info);
-                        // alert("接收自定义信息：" + JSON.stringify(info));
-                        if(jPush.config.receiveMessageFunc != undefined && jPush.config.receiveMessageFunc != null)
-                        {
-                            jPush.config.receiveMessageFunc(info);
-                        }
-                    };
-
-                    /**收到了通知
-                     * var json={
-                            content:,//对应 Portal 推送通知界面上的"通知内容"字段.
-                            extras:,//对应 Portal 推送消息界面上的"可选设置"里的附加字段.
-                            notificationId:,//(仅Android以及iOS本地通知) 消息Id,用于清除通知
-                            isAPNs:,//(仅iOS)本通知是否由APNs服务发出 true/false
-                         };
-                     * **/
-                    uexJPush.onReceiveNotification = function (info) {
-                        info = JSON.parse(info);
-                        // alert("接收通知：" + JSON.stringify(info));
-                        if(jPush.config.receiveNotificationFunc != undefined && jPush.config.receiveNotificationFunc != null)
-                        {
-                            jPush.config.receiveNotificationFunc(info);
-                        }
-                    };
-
-                    /**用户点击了通知
-                     * var param={
-                              content:,//对应 Portal 推送通知界面上的"通知内容"字段.
-                              extras:,//对应 Portal 推送消息界面上的"可选设置"里的附加字段.
-                              notificationId:,//(仅Android)消息Id,可以用于清除通知
-                              sAPNs:,//(仅iOS)本通知是否由APNs服务发出 true/false
-                        };
-                     * **/
-                    uexJPush.onReceiveNotificationOpen = function (info) {
-                        info = JSON.parse(info);
-                        // alert("通知点击：" + JSON.stringify(info));
-                        if(jPush.config.receiveNotificationOpenFunc != undefined && jPush.config.receiveNotificationOpenFunc != null)
-                        {
-                            jPush.config.receiveNotificationOpenFunc(info);
-                        }
-                    };
-
-                    //此接口仅 iOS 拥有,仅在iOS 10.0+系统上有效
-                    uexJPush.showNotificationAlertInForeground(true);//true - 显示 , false - 不显示
-
-                    /**连接状态变化
-                     * var json={
-                            connect:,//0-已连接上,1-未连接
-                          };
-                     * **/
-                    uexJPush.onReceiveConnectionChange = function (info) {
-                        info = JSON.parse(info);
-                        // alert("是否链接：" + JSON.stringify(info));
-                        if(jPush.config.receiveConnectionChangeFunc != undefined && jPush.config.receiveConnectionChangeFunc != null)
-                        {
-                            // alert("是否链接：获取");
-                            jPush.config.receiveConnectionChangeFunc(info);
-                        }
-                    };
-
-                    if(callbackJson != undefined && callbackJson != null && callbackJson.execFunc != undefined)
-                    {
-                        callbackJson.execFunc();
-                    }
-                }
-                else
-                {
-                    jPush.config.receiveNotPushFunc = callbackJson.receiveNotPushFunc == undefined
-                        ? jPush.config.receiveNotPushFunc : callbackJson.receiveNotPushFunc;
-
-                    if(jPush.config.receiveNotPushFunc != null)
-                    {
-                        jPush.config.receiveNotPushFunc();
-                    }
-                }
-
-            });
-
-        };
-    },
-    /**关闭极光推送；
-     * **/
-    closeJPush:function () {
-        verifyPlatform(function () {
-            //停止推送服务
-            uexJPush.stopPush();
-        });
-    },
-    /**添加一个本地通知
-     * @param json json,//通知内容参数
-     * json={
-    builderId:0,//long 设置本地通知样式(仅Android有效)
-    title:,//本地通知的title
-    content:,//设置本地通知的content
-    extras:,//额外的数据信息extras为json字符串
-    notificationId:,//int 设置本地通知的ID
-    broadCastTime:,//long 设置本地通知延迟触发时间,毫秒为单位,如设置10000为延迟10秒添加通知
-     * **/
-    addLocalNotification:function (json) {
-        /*var json = {
-            builderId:0,
-            title:"这是title",
-            content:"这是内容",
-            extras:{"key":"value"},
-            notificationId:3,
-            broadCastTime:10000
-        };*/
-        uexJPush.addLocalNotification(json);
-    },
-    //clearLocalNotifications //移除所有的通知
-    clearLocalNotifications:function () {
-        uexJPush.clearLocalNotifications();
-    }
-}
 
 /**
  * 上下滚动，事件
@@ -4636,554 +5304,7 @@ function scroll(id,callbackDwonFunc,callbackUpFunc) {
 
 }
 
-/**
- * 数据库操作（原生） 一下所有方法的回调方法，均可以不传
- * **/
-var databaseOperate = {
-    config:{
-        dbId:1,//数据库唯一标识符
-        db:null,//数据库对象
-        nameDB:"lexinDB",//数据库的名字
-        tables:[
-            "CREATE TABLE IF NOT EXISTS tb_ctrl " +
-            "(id integer primary key," +
-            "service_Id varchar(100) not null," +
-            "readed integer not null default 0," +
-            "time varchar(100) not null," +
-            "itemsTotal integer not null)",//表(tb_ctrl)--工作台
 
-            "CREATE TABLE IF NOT EXISTS tb_attachment " +
-            "(id integer primary key," +
-            "task_Id varchar(100) not null," +
-            "step_Id varchar(20) not null," +
-            "fileUrl varchar(1000) not null," +
-            "attachInfo varchar(1000) not null)",//表(tb_attachment)
-
-        ],//需要创建表的sql数据集
-    },//数据库基础配置数据
-    db:null,//数据库对象
-    /**@param nameDB string,//数据库名
-     * @param callbackFunc(data) function,//回调函数
-     * data={
-       err,data,db,dataType,optId
-       }
-     //:数据库创建成功后的回调，如果创建过程中有错误 err不为空，否则err为空，data返回的执行结果，
-     db是数据库创建成功后的数据库对象，可 以执行相关的操作，dataType返回结果的数据类型，optId操作Id
-     * **/
-    openOrCreateDB:function (callbackFunc) {
-
-        /**opId	Number	是	数据库对象的唯一标识符
-         dataType	Number	是	参数类型详见CONSTANT中Callback方法数据类型
-         data	Number	是	返回uex.cSuccess或者uex.cFailed,详见CONSTANT中Callbackint类型数据
-         * **/
-            // alert(JSON.stringify(databaseOperate.db));
-        var interval = setInterval(function () {
-                // openDataBase 打开数据库
-                // window.uexOnload = function() {
-                appcan.ready(function() {
-                    // alert(databaseOperate.config.nameDB);
-                    var db = uexDataBaseMgr.open(databaseOperate.config.nameDB);
-                    // alert(JSON.stringify(db));
-                    if(!db){
-                        // alert("打开失败!");
-                        console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建报错 Start------------------------------------");
-                        console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建报错 End------------------------------------");
-                    }
-                    else
-                    {
-                        clearInterval(interval);
-                        // alert("数据库打开成功!");
-                        console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建成功------------------------------------");
-                        // alert(JSON.stringify(db));
-                        databaseOperate.db = db;
-                        databaseOperate.config.db = db;
-                        callbackFunc(db);
-                    }
-                    /*uexDataBaseMgr.cbOpenDataBase = function (opId,dataType,data) {
-                     if(data == 0){
-                     alert("数据库打开成功!");
-                     if(callbackFunc != null && callbackFunc != undefined)
-                     {
-                     callbackFunc({opId:opId,data:data,dataType:dataType});
-                     }
-                     console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建成功------------------------------------");
-                     }else{
-                     alert("数据库打开失败!");
-                     console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建报错 Start------------------------------------");
-                     }
-                     };
-                     uexDataBaseMgr.openDataBase(databaseOperate.config.nameDB,databaseOperate.config.dbId);*/
-                });
-            },100);
-
-
-        //创建一个名字为''''数据库
-        /*appcan.ready(function() {
-         appcan.database.create(databaseOperate.config.nameDB,function(err,data,db,dataType,optId){
-         if(err){
-         //创建过程中出错了
-         // alert('create error');
-         console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建报错 Start------------------------------------");
-         console.log(err);
-         console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建报错 End------------------------------------");
-         return;
-         }
-
-         //db就是数据库对象
-         if(data == 0){
-         console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建成功------------------------------------");
-         //数据库创建成功可以使用了
-         databaseOperate.db = db;
-         databaseOperate.config.db = db;
-
-         setTimeout(function () {
-         if(callbackFunc != null && callbackFunc != undefined)
-         {
-         callbackFunc({err:err,data:data,db:db,dataType:dataType,optId:optId});
-         }
-
-         },0);
-
-         return db;
-
-         }else{
-         console.log("------------------------------数据库：" + databaseOperate.config.nameDB + "创建失败------------------------------------");
-         //数据库创建失败了
-         return;
-         }
-         });
-         });*/
-
-    },
-    /**查询数据
-     @param sql,//sql语句
-     @param callbackFunc（data） function,//查询后的回调函数
-     data,查询失败为null;否则为//已查到数据
-     **/
-    query:function (sql,callbackFunc) {
-        // alert("query sql :" +  sql);
-
-        if(databaseOperate.db != null)
-        {
-            // alert("db :" +  JSON.stringify(databaseOperate.db));
-            /*
-            * data = {data:data,//已查到数据
-             err:err,//判断是否成功，执行结果,0表示成功,非0表示失败
-             }*/
-            uexDataBaseMgr.select(databaseOperate.db,sql, function (err,data) {
-                // alert("data: " + JSON.stringify(data) + "\nerr:" + JSON.stringify(err));
-                var queryData = null;
-                if (err) {
-                    // alert('执行失败');
-                    console.log("------------------------------查询数据：" + sql + " 查询失败 Start------------------------------------");
-                    console.log(err);
-                    console.log("------------------------------查询数据：" + sql + " 查询失败 End------------------------------------");
-                }
-                else
-                {
-                    console.log("------------------------------查询数据：" + sql + " 查询成功------------------------------------");
-                    queryData = data;
-                }
-
-                if(callbackFunc != null && callbackFunc != undefined)
-                {
-                    callbackFunc(queryData);
-                }
-
-
-            });
-        }
-        else
-        {
-            // alert("create Tb!");
-            databaseOperate.createTb(function (data) {
-                // alert("create Tb2!");
-                databaseOperate.query(sql,callbackFunc);
-            });
-        }
-
-
-        //数据库创建成功了为对象db，然后就可以直接用db执行查询操作了,查询user表中的所有用户信息
-        /*databaseOperate.db.select(sql,function(err,data,dataType,optId){
-         alert("query data: " + JSON.stringify({err:err,data:data,dataType:dataType,optId:optId}));
-
-         if(err){
-         //如果创建过程中出错了
-         console.log("------------------------------查询数据：" + sql + " 查询失败 Start------------------------------------");
-         console.log(err);
-         console.log("------------------------------查询数据：" + sql + " 查询失败 End------------------------------------");
-         return;
-         }
-         else if(data != null)
-         {
-         console.log("------------------------------查询数据：" + sql + " 查询成功------------------------------------");
-         if(callbackFunc != null && callbackFunc != undefined)
-         {
-         callbackFunc({err:err,data:data,dataType:dataType,optId:optId});
-         }
-
-         }
-         else
-         {
-         console.log("------------------------------查询数据：" + sql + " 查询失败------------------------------------");
-         }
-         //data中的值为sql返回的内容
-
-         });*/
-    },
-    /**执行sql语句
-     * @param sql,//sql语句
-     * @param callbackFunc（data） function,//执行后的回调函数
-     data={err:err,data:data,dataType:dataType,optId:optId}
-     用返回的数据库对象，进行更新操作，sql要更新用的sql语句，callback是更新 返回的结果回调，
-     同样的callback(err,data,dataType,optId)第一个参数是Error对象如果为空则表示 没有错误，
-     否则表示操作出错了，data表示返回的操作结果,dataType操作结果的数据类型，optId该操作id
-     * **/
-    exec:function (sql,callbackFunc) {
-        // alert(sql);
-        if(databaseOperate.db != null)
-        {
-            // alert("sql :" +  sql + "\ndb: " + JSON.stringify(databaseOperate.db));
-            uexDataBaseMgr.sql(databaseOperate.db,sql, function(err) {
-                // alert("err: " + JSON.stringify(callbackFunc));
-                if (!err) {
-                    // alert('执行成功');
-                    console.log("------------------------------SQL：" + sql + " 执行成功------------------------------------");
-
-                    if(callbackFunc != null && callbackFunc != undefined)
-                    {
-                        callbackFunc();
-                    }
-                }
-                else
-                {
-                    // alert('执行失败');
-                    console.log("------------------------------SQL：" + sql + " 执行失败 Start------------------------------------");
-                    console.log(err);
-                    console.log("------------------------------SQL：" + sql + " 执行失败 End------------------------------------");
-                }
-            });
-        }
-        else
-        {
-            databaseOperate.createTb(function (data) {
-                databaseOperate.exec(sql,callbackFunc);
-            });
-        }
-
-
-
-        //在指定的数据库上执行更新操作
-        /*appcan.database.exec({
-         name:databaseOperate.config.nameDB,
-         sql:sql,
-         callback:function(err,data,dataType,optId){
-         if(err){
-         alert("SQL Err 1");
-         //如果创建过程中出错了
-         console.log("------------------------------SQL：" + sql + " 执行失败 Start------------------------------------");
-         console.log(err);
-         console.log("------------------------------SQL：" + sql + " 执行失败 End------------------------------------");
-         return;
-
-         }
-         //data中的值为sql返回的内容
-         alert(data);
-         }
-         });*/
-
-        /*appcan.database.exec(databaseOperate.config.nameDB,sql,function (err,data,dataType,optId) {
-         if(err){
-
-         alert("SQL Err 1");
-         //如果创建过程中出错了
-         console.log("------------------------------SQL：" + sql + " 执行失败 Start------------------------------------");
-         console.log(err);
-         console.log("------------------------------SQL：" + sql + " 执行失败 End------------------------------------");
-         return;
-         }
-
-         alert(data);
-         });*/
-
-        /*appcan.ready(function() {
-         //数据库创建成功了为对象db，然后就可以直接用db执行更新操作了,删除userId为1的用户
-         databaseOperate.db.exec(sql,function(err,data,dataType,optId){
-         alert("data: " + JSON.stringify({err:err,data:data,dataType:dataType,optId:optId}));
-
-         if(err){
-
-         alert("SQL Err 1");
-         //如果创建过程中出错了
-         console.log("------------------------------SQL：" + sql + " 执行失败 Start------------------------------------");
-         console.log(err);
-         console.log("------------------------------SQL：" + sql + " 执行失败 End------------------------------------");
-         return;
-         }
-         if(data == 0){
-         alert("SQL success");
-         //执行成功了
-         console.log("------------------------------SQL：" + sql + " 执行成功------------------------------------");
-         if(callbackFunc != null && callbackFunc != undefined)
-         {
-         callbackFunc({err:err,data:data,dataType:dataType,optId:optId});
-         }
-
-         }else{
-         alert("SQL Err 2");
-         //执行失败了
-         console.log("------------------------------SQL：" + sql + " 执行失败------------------------------------");
-         }
-
-         });
-         });*/
-
-    },
-    /**创建表
-     * * @param callbackFunc function,//回调函数
-     * **/
-    createTb:function (callbackFunc) {
-
-        setTimeout(function () {
-            // alert("createTb..." + JSON.stringify(databaseOperate.db));
-
-            databaseOperate.openOrCreateDB(function (data) {
-                // alert(JSON.stringify(databaseOperate.db));
-                // alert(JSON.stringify(data));
-
-                if(data)
-                {
-                    // alert("success");
-                    for(var i = 0; i < databaseOperate.config.tables.length; i++)
-                    {
-                        // alert(databaseOperate.config.tables[i]);
-                        databaseOperate.exec(databaseOperate.config.tables[i]);
-                    }
-
-                    if(callbackFunc != null && callbackFunc != undefined)
-                    {
-                        callbackFunc(data);
-                    }
-                    /*var sql = "INSERT INTO tb_ctrl (service_Id,readed,time) VALUES ('fdss',1,'dfg')";
-                     databaseOperate.exec(sql);
-
-                     setTimeout(function () {
-                     var sql2 = "select * from tb_ctrl";
-                     databaseOperate.query(sql2,function (data) {
-                     // alert('data:' + JSON.stringify(data));
-                     });
-                     },3000);
-                     // alert(JSON.stringify(databaseOperate.db));*/
-                    //数据库创建成功可以使用了
-                }
-                else
-                {
-                    // alert("err");
-                    //数据库创建失败了
-                }
-            });
-        },0);
-
-        // alert("createTb 2");
-    },
-    /**插入数据
-     * @param table string，//表名
-     * @param insertData array，//insertData = [[key,value],[key,value]....] key是字段名，value是字段值
-     * @param callbackFunc function,//回调函数
-     * **/
-    insertTb:function (table,insertData, callbackFunc ) {
-        var sql = "INSERT INTO " + table + "(";
-        var values = " VALUES(";
-        for(var i = 0; i < insertData.length; i++)
-        {
-            if(i == (insertData.length - 1))
-            {
-                sql += "" + insertData[i][0] + ")";
-                values += "'" + insertData[i][1] + "')";
-            }
-            else
-            {
-                sql += "" + insertData[i][0] + ",";
-                values += "'" + insertData[i][1] + "',";
-            }
-
-        }
-
-        sql = sql + values;
-        databaseOperate.exec(sql,callbackFunc);
-
-    },
-    /**插入数据，转化成sql
-     * @param table string,//表名
-     * @param keys Array,//数据需要传入插入的数据字段名
-     * @param values Array,//数据需要传入插入的数据字段值，如values
-     * @param callbackFunc function,//回调函数
-     * **/
-    insertTbConvert:function (table, keys, values, callbackFunc) {
-        /*var sql = "INSERT INTO tb_ctrl (service_Id,readed,time) VALUES (";*/
-        var insertData = [];
-        // var keys  = ['service_Id','readed','time','itemsTotal'];
-        for(var i = 0; i < values.length; i++)
-        {
-            var tmp = [];
-            tmp.push(keys[i]);
-            tmp.push(values[i]);
-            insertData.push(tmp);
-        }
-        databaseOperate.insertTb(table,insertData,callbackFunc);
-
-    },
-    /**插入数据，表（tb_ctrl）
-     * @param values Array,//数据需要传入插入的数据，如values = [service_Id,readed,time,itemsTotal]
-     * @param callbackFunc function,//回调函数
-     * **/
-    insertToTbCtrl:function (values,callbackFunc) {
-
-        var keys  = ['service_Id','readed','time','itemsTotal'];
-        databaseOperate.insertTbConvert("tb_ctrl",keys, values,callbackFunc);
-
-    },
-    /**插入数据，表（tb_attachment）
-     * @param values Array,//数据需要传入插入的数据，如values = ['task_Id','step_Id','fileUrl','attachInfo']
-     * @param callbackFunc function,//回调函数
-     * **/
-    insertToTbAttachment:function (values,callbackFunc) {
-
-        var keys  = ['task_Id','step_Id','fileUrl','attachInfo'];
-        databaseOperate.insertTbConvert("tb_attachment",keys, values,callbackFunc);
-
-    },
-    /**查询表
-     * @param table string，//表名
-     * @param where string，//查询条件，如 where key = value; key是字段名，value是字段值
-     * * @param callbackFunc function,//回调函数
-     * **/
-    queryTb:function (table,where,callbackFunc) {
-        var sql = "select * from ";
-        if(where.indexOf("where") > 0)
-        {
-            sql = sql + table + " " + where;
-        }
-        else
-        {
-            sql = sql + table + " where " + where;
-        }
-
-        databaseOperate.query(sql,callbackFunc);
-    },
-    /**查询表tb_ctrl，
-     * * @param where string,//查询条件
-     * * @param callbackFunc function,//回调函数
-     * **/
-    queryTbCtrl:function (where,callbackFunc) {
-        databaseOperate.queryTb('tb_ctrl', where, callbackFunc);
-    },
-    /**查询表tb_attachment，
-     * * @param where string,//查询条件
-     * * @param callbackFunc function,//回调函数
-     * **/
-    queryTbAttachment:function (where,callbackFunc) {
-        databaseOperate.queryTb('tb_attachment', where, callbackFunc);
-    },
-    /**更新表
-     * @param table string，//表名
-     * @param updateData array，//updateData = [[key,value],[key,value]....] key是字段名，value是字段值
-     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值;若不传，或为null,‘’空字符，则会更新数据表整个列
-     * @param callbackFunc function,//回调函数
-     *  **/
-    updateTb:function(table, updateData, where, callbackFunc){
-        var sql = "update " + table;
-        var x;
-        sql += " set ";
-        for (var i = 0; i < updateData.length; i++) {
-            x = updateData[i];
-            if (i == (updateData.length - 1)) {
-                sql += x[0] + "='" + x[1] + "'";
-            }
-            else {
-                sql += x[0] + "='" + x[1] + "', ";
-            }
-
-        }
-
-        if(where != null && where != undefined)
-        {
-
-            if(where.indexOf("where") > 0)
-            {
-                sql += " " + where;//alert(sql);
-            }
-            else
-            {
-                sql += " where " + where;//alert(sql);
-            }
-        }
-
-
-        databaseOperate.exec(sql,callbackFunc);
-
-    },
-    /**更新表tb_ctrl
-     * @param updateData array，//updateData = [[key,value],[key,value]....] key是字段名，value是字段值
-     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值
-     * @param callbackFunc function,//回调函数
-     *  **/
-    updateTbCtrl:function (updateData, where, callbackFunc) {
-        databaseOperate.updateTb("tb_ctrl", updateData, where, callbackFunc);
-    },
-    /**更新表tb_attachment
-     * @param updateData array，//updateData = [[key,value],[key,value]....] key是字段名，value是字段值
-     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值
-     * @param callbackFunc function,//回调函数
-     *  **/
-    updateTbAttachment:function (updateData, where, callbackFunc) {
-        databaseOperate.updateTb("tb_attachment", updateData, where, callbackFunc);
-    },
-    /**删除表中数据
-     * * @param table string，//表名
-     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值;可以不传入，若没有传或传入‘’，空字符，则删除整个数据表
-     * * @param callbackFunc function,//回调函数
-     * **/
-    delData:function (table,where,callbackFunc) {
-        var sql = "delete from " + table;
-        if(where != null && where != undefined)
-        {
-            if(where.indexOf("where") > 0)
-            {
-                sql = sql + " " + where;
-            }
-            else
-            {
-                sql = sql +  " where " + where;
-            }
-        }
-
-
-        databaseOperate.exec(sql,callbackFunc);
-    },
-    /**删除数据（表tb_attachment）
-     * @param where string，//更新条件，如 where key = value; key是字段名，value是字段值
-     * @param callbackFunc function,//回调函数
-     *  **/
-    delDataTbAttachment:function (where,callbackFunc) {
-        databaseOperate.delData("tb_attachment", where, callbackFunc);
-    },
-    /**删除表
-     *  * * @param table string，//表名
-     * * @param callbackFunc function,//回调函数
-     * **/
-    delTb:function (table,callbackFunc) {
-        var sql = "drop table " + table;
-        databaseOperate.exec(sql,callbackFunc);
-    },
-    /**删除数据库
-     * @param callbackFunc function,//回调函数
-     * **/
-    delDB:function (callbackFunc) {
-        var sql = "drop database " + databaseOperate.config.nameDB;
-        databaseOperate.exec(sql,callbackFunc);
-    },
-}
 
 /**
  * 判断是否是数字
@@ -6519,168 +6640,7 @@ var actionSheetOperate = {
     }
 };
 
-/**
- * 返回上一页刷新
- * @param callbackFuncPre function,//回调函数，刷新时回调函数 进入前台回调
- * @param callbackFuncBack function,//回调函数，刷新时回调函数 压入后台回调
- * **/
-function refreshBack(callbackFuncPre,callbackFuncBack, viewModel) {
-    appcan.ready(function() {
-        //state: 状态值,0:回到前台;1:压入后台
-        uexWindow.onStateChange = function(state){
-            setTimeout(function () {
-                // alert(LocalStoreOperate.getIsForceRefresh())
-                // alert("state:" + state);
-                if(LocalStoreOperate.getIsRefresh() || LocalStoreOperate.getIsForceRefresh())
-                {
-                    if(state == 0 && callbackFuncPre != undefined)
-                    {
-                        callbackFuncPre(state);
-                        LocalStoreOperate.setIsRefresh(false);
-                        LocalStoreOperate.setIsForceRefresh(false);
-                    }
-                    else if(callbackFuncBack != undefined && callbackFuncBack != null)
-                    {
-                        callbackFuncPre(state);
-                    }
-                }
-            });
 
-        }
-    });
-
-}
-
-/**
- * 获取本周周一和周日的时间戳 对象；获取本月的月初的时间戳和月底的时间戳 对象
- * @param time number,//时间戳
- * @param tag number,//0 获取本周周一和周日的时间戳 对象；1 获取本月的月初的时间戳和月底的时间戳 对象
- *
- * return {
-       time1:'',//本周一的时间戳或本月初
-       time2:'',//本周日的时间戳或本月底
-       }
- * **/
-function getTimeByRank(time,tag) {
-
-    if(time == undefined)
-    {
-        time = (new Date()).getTime();
-    }
-
-    var timeObj = {
-        time1:null,//本周一的时间戳或本月初
-        time2:null,//本周日的时间戳或本月底
-    };
-    var oneDayTime = ONE_DAY_TIME;//一天的时间，单位毫秒
-    var date = new Date(time);
-// alert(time + "  " + tag);
-    switch (tag)
-    {
-        //获取上周的时间戳
-        case 0 :{
-
-            if(date.getDay() != 0)
-            {
-                timeObj.time1 = time - oneDayTime * (date.getDay() - 1);
-            }
-            else
-            {
-                timeObj.time1 = time - oneDayTime * 6;
-            }
-            date = new Date(timeObj.time1);
-            timeObj.time1 = (new Date(date.getFullYear()
-                , date.getMonth()
-                ,date.getDate()
-                ,date.getHours()
-                ,date.getMinutes()
-                ,date.getSeconds())).getTime();
-            timeObj.time2 = timeObj.time1 + oneDayTime * 6;
-            break;
-        }
-        case 1:
-        {
-            var year = date.getFullYear();
-            var month = date.getMonth();
-            timeObj.time1 = (new Date(year, month,1
-                ,date.getHours()
-                ,date.getMinutes()
-                ,date.getSeconds())).getTime();
-            if(month == 11)
-            {
-                year += 1;
-                month = 0;
-            }
-            else
-            {
-                month += 1;
-            }
-
-            timeObj.time2 = (new Date(year, month,1
-                ,date.getHours()
-                ,date.getMinutes()
-                ,date.getSeconds())).getTime() - oneDayTime;
-
-            break;
-        }
-    }
-
-    return timeObj;
-
-}
-
-/**
- * 获取本周周一和周五的时间戳 对象；获取本月的月初的时间戳和月底的时间戳 对象
- * @param time number,//时间戳
- * @param tag number,//0 获取本周周一和周五的时间戳 对象；1 获取本月的月初的时间戳和月底的时间戳 对象
- *
- * return {
-       time1:'',//本周一的时间戳或本月初
-       time2:'',//本周五的时间戳或本月底
-       }
- * **/
-function getTimeByRank2(tag,time) {
-    return getTimeByRank(time,tag)
-}
-
-/**
- * 星期几的数字转化为汉字
- *  @param weekInt number,//星期几的数字
- *  return //星期几的汉字
- * **/
-function weekConert(weekInt) {
-    switch (weekInt)
-    {
-        case 0:
-        {
-            return '日'
-        }
-        case 1:
-        {
-            return '一'
-        }
-        case 2:
-        {
-            return '二'
-        }
-        case 3:
-        {
-            return '三'
-        }
-        case 4:
-        {
-            return '四'
-        }
-        case 5:
-        {
-            return '五'
-        }
-        case 6:
-        {
-            return '六'
-        }
-    }
-}
 
 /**
  * 1级下拉内容
