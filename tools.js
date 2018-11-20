@@ -37,7 +37,7 @@
  fileMgrOperate;// 文件系统管理器
  DownloaderMgr;// 下载管理器，下载操作！
  buttonOperate;// 额外按钮操作
- drawTableChart;// 画表图,如折线图，比例图等
+ DrawTableChart;// 画表图,如折线图，比例图等
  localStorageOperate;// 本地临时存储
  taskStatusConvert;//任务类型转化
  refreshBack；//返回上一页刷新
@@ -46,9 +46,9 @@
  headTop;// 内容距离顶部的距离（内容div相对于绝对定位）
  hei;// 获取设备高度
  nofind;// 图片不存在显示默认图片
- hexagonalOperate://六棱柱菜单操作
+ HexagonalOperate://六棱柱菜单操作
  stepEnter://巡店任务跳转
- strReplaceOperate: //字符替换处理
+ StringOperate: //字符替换处理
  isDoorInvest: //判断是否是门店投资中心的人员
  PopoverOperate://浮动窗口操作
  * **/
@@ -157,7 +157,8 @@ var ScrollPositonOperate = {
         scrollWidth:document.body.scrollWidth,//现在body的宽度
         scrollHeight:document.body.scrollHeight//现在body的高度
     },
-    /**滚动到指定位置
+    /**
+     * 滚动到指定位置
      * @param x number,x轴上的滚动到的位置
      * @param y number,y轴上的滚动到的位置
      * **/
@@ -178,8 +179,8 @@ var ScrollPositonOperate = {
 
         // alert("t:" + t + "\nl:" + l + "\nw:" + w + "\nh:" + h);
     },
-
-    /**获取滚动位置
+    /**
+     * 获取滚动位置
      * return ScrollPositonOperate.posion;**/
     getScrollPostion:function () {
         var posion = {
@@ -193,7 +194,8 @@ var ScrollPositonOperate = {
 
         return posion;
     },
-    /**滚动监听方法，不断调用
+    /**
+     * 滚动监听方法，不断调用
      * @param callbackFunc function,//回调函数
      * **/
     onScroll:function (callbackFunc) {
@@ -201,13 +203,45 @@ var ScrollPositonOperate = {
         // window.onscroll = callbackFunc();
         window.onscroll = callbackFunc();
     },
-    /**获取内容标签的高度
+    /**
+     * 获取内容标签的高度
      * @param tagId string,//标签id
      * **/
     getContTagHeight:function (tagId) {
         ScrollPositonOperate.posion.contHeight = document.getElementById(tagId).offsetHeight;
         ScrollPositonOperate.posion.contHeightFinal = ScrollPositonOperate.posion.contHeight;
         // toast(ScrollPositonOperate.posion.contHeight);
+    },
+    /**
+     * 上下滚动，事件
+     * @param id,//滚动标签Id
+     * @param callbackDwonFunc function,//上拉触底促发事件
+     * @param callbackUpFunc function,//下拉刷新促发事件
+     * **/
+    scroll:function(id,callbackDwonFunc,callbackUpFunc) {
+
+        $("#" + id).on("more",function(ev,scrollbox) {
+            console.log("触底");
+
+            setTimeout(function () {
+                /* var htmlStr = "";
+                 for (var i = 0; i < 120; i++) {
+                 htmlStr += "<li>append" + i + "</li>"
+                 };
+                 $("#ScrollContent ul").append(htmlStr);*/
+                scrollbox.reset();
+                callbackDwonFunc&&callbackDwonFunc();
+            }, 0);
+        });
+
+        $("#" + id).on("reload",function(ev,scrollbox){
+            console.log("下拉");
+            setTimeout(function(){
+                scrollbox.reset();
+                callbackUpFunc&&callbackUpFunc();
+            },0);
+        });
+
     }
 };
 
@@ -535,7 +569,7 @@ var LocalStoreOperate = {
             value = "1" + value;
         }
 
-        appcan.locStorage.setVal(key,value);
+        appcan&&appcan.locStorage.setVal(key,value);
     },
     /**
      * 获取数据，若是子字符串则返回子字符串，若是json数据则返回json对象
@@ -603,7 +637,6 @@ var LocalStoreOperate = {
         return PageGuideOperate.getHrefData();
     }
 };
-LocalStoreOperate.setIsRefresh();
 
 /**
  * 设备操作
@@ -2257,7 +2290,7 @@ var SwipeOperateJS = {
 };
 
 /**
- * 时间/日期格式转化 使用时先引入moment.js
+ * 时间选择 时间/日期格式转化 使用时先引入moment.js
  * **/
 var TimerOperate = {
     /**
@@ -2478,6 +2511,101 @@ var TimerOperate = {
 
         return timeObj;
 
+    },
+    /**选择日期
+     * @param opt ,0打开日历，1时关闭日历
+     * @param func function,选中日期后的回调函数，回传的数据params，
+     * func = function(params){
+     * }
+     *   params = {
+    date:{  //返回的日期
+        year:,//年
+        month:,//月
+        day://日
+    }
+     * **/
+    dateSel:function (opt, func) {
+        PlatformOperate.verifyPlatform(function () {
+
+            switch (opt)
+            {
+                case 0:
+                {
+                    var b = false;
+                    document.onclick = function(){
+                        if(b)
+                        {
+                            // alert(1);   //只要是点击页面的任何一个地方，都会弹1.
+                            uexCalendarView.close();
+                            document.onclick = null;
+                            // alert(2);
+                        }
+                        b = true;
+                    };
+
+                    /*onItemClick //点击日期时的监听方法
+                     * 返回数据，日期：{
+                     date:{  //返回的日期
+                     year:,//年
+                     month:,//月
+                     day://日
+                     }
+                     */
+                    uexCalendarView.onItemClick = function (data) {
+                        uexCalendarView.close();
+                        if(PlatformOperate.getPlatform(2))
+                        {
+                            params2.date.year = data.substring(data.indexOf('r') + 4, data.indexOf(',') - 1);
+                            params2.date.month = data.substring(data.indexOf('h') + 4, data.indexOf('day') - 3);
+                            params2.date.day = data.substring(data.lastIndexOf(':') + 2, data.lastIndexOf('}') - 2);
+                        }
+                        else
+                        {
+                            params2.date.year = data.substring(data.indexOf('r') + 2, data.indexOf(','));
+                            params2.date.month = data.substring(data.indexOf('h') + 2, data.indexOf('day') - 1);
+                            params2.date.day = data.substring(data.lastIndexOf(':') + 1, data.lastIndexOf('}') - 1);
+                        }
+                        params2.date.year = parseInt(params2.date.year);
+                        params2.date.month = parseInt(params2.date.month) - 1;
+                        params2.date.day = parseInt(params2.date.day);
+
+                        func&&func(params2);
+
+                    };
+
+                    /* uexCalendarView.open(params) //打开日历
+                     * x	Number	是	view距离当前网页左边框的距离(px)
+                     y	Number	是	view距离当前网页顶部的距离(px)
+                     w	Number	是	view宽度(px)
+                     h	Number	是	view高度(px)*/
+                    var params = {
+                        x:screen.width/6,
+                        y:screen.height/4,
+                        w:500,
+                        h:500
+                    }
+                    uexCalendarView.open(params);
+                    //设置被选中的日期
+                    var date = new Date();
+                    var params2 = {
+                        date:{
+                            year:date.getFullYear(),
+                            month:date.getMonth() + 1,
+                            day:date.getDate()
+                        }
+                    }
+                    uexCalendarView.setSelectedDate(params2);
+                    // uexCalendarView.setSelectedDate();
+                    break;
+                }
+                case 1:
+                {
+                    // close //关闭日历
+
+                    uexCalendarView.close();
+                }
+            }
+        });
     }
 };
 
@@ -3014,6 +3142,16 @@ var MediaMgrOperate = {
     }
 };
 
+/**
+ * file代表系统路径例如file://sdcard
+
+ wgt://代表应用空间，即应用下载文件或保存文件的地方。Android上对应file://sdcard/widgetone/app/[widgetid]/路径下
+
+ res://对应的资源路径，这个是只读的，即 应用安装路径的asset路径下的wgtres文件夹
+ * **/
+/*var unzipPathAndroid = "/storage/emulated/0/widgetone/apps/001/unzip";//android解压路径
+var unzipPathAndroid = "wgt://unzip";//android解压路径
+var unzipPathIOS = "/storage/emulated/0/widgetone/apps/001/unzip";//苹果解压路径*/
 /**
  * 文件操作 （原生）,打开文件（office类的等文件），解压文件，删除文件或文件夹
  * **/
@@ -3583,7 +3721,7 @@ var LocationOperate ={
             alert("不支持定位");
         }
     }
-}
+};
 
 /**
  * 加载百度地图（js/原生，原生：baiduGeoMapCtrlNative）
@@ -4131,8 +4269,8 @@ var JPush = {
 
                                 DialogOperate.alrBtn("更新完成","是否重启，重启会黑屏一段时间，不要关闭哦！",
                                     ['否', '是'],function () {
-                                    uexWidgetOne.restart();
-                                });
+                                        uexWidgetOne.restart();
+                                    });
 
                             },3000);
                             //appcan.frame.open('content',"popOver_content.html",'0',titHeight,'newWin');
@@ -4340,40 +4478,40 @@ var DatabaseOperate = {
          data	Number	是	返回uex.cSuccess或者uex.cFailed,详见CONSTANT中Callbackint类型数据
          * **/
         var interval = setInterval(function () {
-                // openDataBase 打开数据库
-                // window.uexOnload = function() {
-                appcan.ready(function() {
-                    var db = uexDataBaseMgr.open(DatabaseOperate.config.nameDB);
-                    // alert(JSON.stringify(db));
-                    if(!db){
-                        // alert("打开失败!");
-                        console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 Start------------------------------------");
-                        console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 End------------------------------------");
-                    }
-                    else
-                    {
-                        clearInterval(interval);
-                        // alert("数据库打开成功!");
-                        console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建成功------------------------------------");
-                        DatabaseOperate.config.db = db;
-                        callbackFunc(db);
-                    }
-                    /*uexDataBaseMgr.cbOpenDataBase = function (opId,dataType,data) {
-                     if(data == 0){
-                     alert("数据库打开成功!");
-                     if(callbackFunc != null && callbackFunc != undefined)
-                     {
-                     callbackFunc({opId:opId,data:data,dataType:dataType});
-                     }
-                     console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建成功------------------------------------");
-                     }else{
-                     alert("数据库打开失败!");
-                     console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 Start------------------------------------");
-                     }
-                     };
-                     uexDataBaseMgr.openDataBase(DatabaseOperate.config.nameDB,DatabaseOperate.config.dbId);*/
-                });
-            },100);
+            // openDataBase 打开数据库
+            // window.uexOnload = function() {
+            appcan.ready(function() {
+                var db = uexDataBaseMgr.open(DatabaseOperate.config.nameDB);
+                // alert(JSON.stringify(db));
+                if(!db){
+                    // alert("打开失败!");
+                    console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 Start------------------------------------");
+                    console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 End------------------------------------");
+                }
+                else
+                {
+                    clearInterval(interval);
+                    // alert("数据库打开成功!");
+                    console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建成功------------------------------------");
+                    DatabaseOperate.config.db = db;
+                    callbackFunc(db);
+                }
+                /*uexDataBaseMgr.cbOpenDataBase = function (opId,dataType,data) {
+                 if(data == 0){
+                 alert("数据库打开成功!");
+                 if(callbackFunc != null && callbackFunc != undefined)
+                 {
+                 callbackFunc({opId:opId,data:data,dataType:dataType});
+                 }
+                 console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建成功------------------------------------");
+                 }else{
+                 alert("数据库打开失败!");
+                 console.log("------------------------------数据库：" + DatabaseOperate.config.nameDB + "创建报错 Start------------------------------------");
+                 }
+                 };
+                 uexDataBaseMgr.openDataBase(DatabaseOperate.config.nameDB,DatabaseOperate.config.dbId);*/
+            });
+        },100);
 
 
         //创建一个名字为''''数据库
@@ -4833,597 +4971,19 @@ var DatabaseOperate = {
         var sql = "drop database " + DatabaseOperate.config.nameDB;
         DatabaseOperate.exec(sql,callbackFunc);
     }
-}
-
-
-
-
-
-
-
-
-
-/**
- * toast窗口的弹出和关闭（提示窗口）
- * @param msg：提示的内容
- * @param data ,//提示显示时长 data = {
-
-   duration:1000,//显示时长（单位：ms）
-
-        position:5,位置显示在屏幕中的位置
-         1: left_top 左上
-         2: top 上中
-         3: right_top 右上
-         4: left 左中
-         5: middle 中间
-         6: right 右中
-         7: bottom_left 下左
-         8: bottom 下中
-         9: right_bottom 右下
-
-        type:0，是否有经度条
-         0: 没有进度条
-         1: 有进度条
- * }
- **/
-function toast(msg,data) {
-    var param = {
-        msg:msg,
-        duration:2000,
-        position:5,
-        type:0
-    };
-
-    if(data != null && data != undefined)
-    {
-        if(data.duration != null && data.duration != undefined)
-        {
-            param.duration = data.duration;
-        }
-        if(data.position != null && data.position != undefined)
-        {
-            param.position = data.position;
-        }
-        if(data.type != null && data.type != undefined)
-        {
-            param.type = data.type;
-        }
-
-    }
-    /** msg：提示的内容
-     duration：toast窗口显示的时间，单位毫秒
-     position：位置 5 为中间
-     type：0 没有菊花圈，1 有菊花圈
-     **/
-    return appcan.window.openToast(param);
-    // appcan.window.openToast(msg,length,5,0);
-
-}
-
-/**
- * 设置video标签是否可以内嵌播放
- * @param bool boolean;//true:允许内嵌播放，false:禁止内嵌播放;默认设置true
- */
-function setVideoInlinePlayEnable(bool) {
-    PlatformOperate.verifyPlatform(function () {
-        bool = bool == undefined ? true : bool;
-        uexWindow.setInlineMediaPlaybackEnable(bool);
-    });
-}
-window.onload = function () {
-    setTimeout(function () {
-        setVideoInlinePlayEnable();
-    },1000);
 };
 
 /**
- * 加载条 startBool 为true开始，false关闭
- * @param startBool bool; 为true开始，false关闭,默认为启动加载条
- * @param tag int;undefine：加载条，锁屏；1：全局对话框，不锁屏,可同时操作其他的;
- * @param msg string;undefine：全局对话框，不锁屏,可同时操作其他的,显示默认信息；否则显示自定义信息
+ * 画表图(js/原生)  DrawTableChart的部分方法，需要引入echarts.min.js才可运行
+ *  drawChartNative(原生)
  * **/
-function loadingCircle(startBool,tag,msg) {
-    setTimeout(function () {
-        verifyPlatform2(function () {
-            if(getPlatform(1) || getPlatform(2))
-            {
-                if(startBool ){
-                    if(tag == undefined)
-                    {
-                        uexLoadingView.openCircleLoading();
-
-                    }
-                    else if(tag == 1)
-                    {
-                        msg == undefined ? '正在加载,请稍候...' : msg;
-                        uexWindow.createProgressDialog({
-                            title:'',
-                            msg:msg,
-                            canCancel:0
-                        });
-                    }
-                }
-                else
-                {
-                    if(tag == undefined)
-                    {
-                        uexLoadingView.close();
-                    }
-                    else if(tag == 1)
-                    {
-                        uexWindow.destroyProgressDialog();
-                    }
-                }
-            }
-        },null);
-    },0);
-
-    // var params = {
-    //     "x":20,
-    //     "y":20,
-    //     "w":300,
-    //     "h":40,
-    //     "style":
-    //         {
-    //             "styleId":0,
-    //             "pointNum":4,
-    //             "pointColor":["#ff4444", "#ffbb33", "#99cc00", "#33b5e5"]
-    //         }
-    // };
-    // uexLoadingView.open(JSON.stringify(params));
-
-}
-
-var pageParamTemp = null;
-setTimeout(function () {
-    pageParamTemp = pageOperate.getHrefData();
-    pageParamTemp = pageParamTemp == null || pageParamTemp == 'null' ? {} : pageParamTemp;
-},0);
-
-
-/**
- * file代表系统路径例如file://sdcard
-
- wgt://代表应用空间，即应用下载文件或保存文件的地方。Android上对应file://sdcard/widgetone/app/[widgetid]/路径下
-
- res://对应的资源路径，这个是只读的，即 应用安装路径的asset路径下的wgtres文件夹
- * **/
-
-/*var unzipPathAndroid = "/storage/emulated/0/widgetone/apps/001/unzip";//android解压路径
-var unzipPathAndroid = "wgt://unzip";//android解压路径
-var unzipPathIOS = "/storage/emulated/0/widgetone/apps/001/unzip";//苹果解压路径*/
-
-
-
-
-
-
-/**
- * 日历 (原生)
- * @param opt ,0打开日历，1时关闭日历
- * @param func function,选中日期后的回调函数，回传的数据params，
- * func = function(params){
- * }
- *   params = {
-    date:{  //返回的日期
-        year:,//年
-        month:,//月
-        day://日
-    }
-}
- * **/
-function calendar(opt, func) {
-    verifyPlatform(function () {
-
-        switch (opt)
-        {
-            case 0:
-            {
-                var b = false;
-                document.onclick = function(){
-                    if(b)
-                    {
-                        // alert(1);   //只要是点击页面的任何一个地方，都会弹1.
-                        uexCalendarView.close();
-                        document.onclick = null;
-                        // alert(2);
-                    }
-                    b = true;
-                };
-
-                /*onItemClick //点击日期时的监听方法
-                 * 返回数据，日期：{
-                 date:{  //返回的日期
-                 year:,//年
-                 month:,//月
-                 day://日
-                 }
-                 */
-                uexCalendarView.onItemClick = function (data) {
-                    uexCalendarView.close();
-                    if(getPlatform(2))
-                    {
-                        params2.date.year = data.substring(data.indexOf('r') + 4, data.indexOf(',') - 1);
-                        params2.date.month = data.substring(data.indexOf('h') + 4, data.indexOf('day') - 3);
-                        params2.date.day = data.substring(data.lastIndexOf(':') + 2, data.lastIndexOf('}') - 2);
-                    }
-                    else
-                    {
-                        params2.date.year = data.substring(data.indexOf('r') + 2, data.indexOf(','));
-                        params2.date.month = data.substring(data.indexOf('h') + 2, data.indexOf('day') - 1);
-                        params2.date.day = data.substring(data.lastIndexOf(':') + 1, data.lastIndexOf('}') - 1);
-                    }
-                    params2.date.year = parseInt(params2.date.year);
-                    params2.date.month = parseInt(params2.date.month) - 1;
-                    params2.date.day = parseInt(params2.date.day);
-
-                    func(params2);
-
-                };
-
-                /* uexCalendarView.open(params) //打开日历
-                 * x	Number	是	view距离当前网页左边框的距离(px)
-                 y	Number	是	view距离当前网页顶部的距离(px)
-                 w	Number	是	view宽度(px)
-                 h	Number	是	view高度(px)*/
-                var params = {
-                    x:screen.width/6,
-                    y:screen.height/4,
-                    w:500,
-                    h:500
-                }
-                uexCalendarView.open(params);
-                //设置被选中的日期
-                var date = new Date();
-                var params2 = {
-                    date:{
-                        year:date.getFullYear(),
-                        month:date.getMonth() + 1,
-                        day:date.getDate()
-                    }
-                }
-                uexCalendarView.setSelectedDate(params2);
-                // uexCalendarView.setSelectedDate();
-                break;
-            }
-            case 1:
-            {
-                // close //关闭日历
-
-                uexCalendarView.close();
-            }
-        }
-    });
-}
-
-/**
- * 时间选择
- * **/
-var timeOperateChoice = {
-    /**选择日期
-     * @param opt ,0打开日历，1时关闭日历
-     * @param func function,选中日期后的回调函数，回传的数据params，
-     * func = function(params){
-     * }
-     *   params = {
-    date:{  //返回的日期
-        year:,//年
-        month:,//月
-        day://日
-    }
-     * **/
-    dateSel:function (opt, func) {
-        calendar(opt, func);
-    }
-
-}
-
-/**
- * 画表图（原生），如折线图，比例图等
- * @param tag int ;0//饼状图
- * @param ctrl boolean ;true//打开，false关闭
- * **/
-function drawChart(tag, ctrl) {
-    switch (tag)
-    {
-        case 0 :
-        {
-            /*
-             var json = {
-             id:,//(必选) 唯一标识符
-             left:,//(可选) 左间距,默认0
-             top:,//(可选) 上间距,默认0
-             width:,//(可选) 宽度,默认屏幕宽度
-             height:,//(可选) 高度,默认屏幕高度
-             bgColor:,//(可选) 背景颜色,默认透明(仅Android)
-             showUnit:,//(可选) 是否显示单位,默认false
-             unit:,//(可选) 单位
-             valueTextColor:,//(可选) 饼状图上值的文本颜色,默认#ffffff
-             valueTextSize:,//(可选) 饼状图上值的字体大小,默认13
-             desc:,//(可选) 描述
-             descTextColor:,//(可选) 描述及图例文本颜色,默认#000000
-             descTextSize:,//(可选) 描述及图例字体大小,默认12
-             showValue:,//(可选) 是否显示value,默认true
-             showLegend:,//(可选) 是否显示图例,默认false
-             legendPosition:,//(可选) 图例显示的位置,取值范围:bottom-饼状图下方;right-饼状图右侧,默认bottom
-             duration:,//(可选) 显示饼状图动画时间,单位ms,默认1000
-             isScrollWithWeb:,//(可选) 是否跟随网页滑动,默认false
-             showTitle:,//(可选) 是否显示title,默认true
-             showPercent:,//(可选) 是否用百分比代替value,默认true
-             showCenter:,//(可选) 是否显示中心圆,默认true
-             centerColor:,//(可选) 中心圆颜色,默认透明
-             centerTitle:,//(可选) 中心标题
-             centerSummary:,//(可选) 中心子标题
-             centerRadius:,//(可选) 中心圆半径百分比,默认40
-             centerTransRadius:,//(可选) 中心圆半透明部分半径,默认42
-             data:[//(必选) 数组
-             {
-             title:,//(必选) 色块名称
-             color:,//(必选) 色块颜色
-             value://(必选) 色块值
-             }
-             ]
-             };
-             */
-            var json = {
-                id:2,
-                left:0,
-                top:500,
-                width:800,
-                height:800,
-                bgColor:"#cccccc",
-                showUnit:true,
-                unit:"cc",
-                showCenter:true,
-                centerColor:"#00000000",
-                centerTitle:"我是标题!",
-                centerSummary:"我是子标题",
-                centerRadius:55,
-                centerTransRadius:57,
-                valueTextColor:"#ffffff",
-                valueTextSize:15,
-                desc:"测试饼状图功能",
-                descTextColor:"#000000",
-                descTextSize:9,
-                showTitle:true,
-                showValue:true,
-                showPercent:false,
-                showLegend:true,
-                legendPosition:"bottom",
-                duration:800,
-                data:[
-                    {
-                        title:"title1",
-                        color:"#c12552",
-                        value:0.9
-                    },
-                    {
-                        title:"title2",
-                        color:"#ff6600",
-                        value:0.5
-                    },
-                    {
-                        title:"title3",
-                        color:"#f5c700",
-                        value:0.6
-                    },
-                    {
-                        title:"title4",
-                        color:"#6a961f",
-                        value:0.4
-                    },
-                    {
-                        title:"title5",
-                        color:"#b36435",
-                        value:0.8
-                    }
-                ]
-            };
-            if(ctrl)
-            {
-                //打开一个饼状图
-                uexChart.openPieChart(json);
-            }
-            else
-            {
-                uexChart.closePieChart(json);
-            }
-
-            break;
-        }
-    }
-
-}
-
-
-
-/**
- * 异步加载js文件
- * @param url string //js文件路径
- * @param callBack string 回调函数；回传e,e为状态数据
- * **/
-function asyncLoaded(url, callBack) { /*url为js的链接，callBack为url的js中的函数（该函数调用应该写到匿名函数中，如function(){console.log(div.getScrollOffset())}）*/
-    var script = document.createElement('script');
-    script.type = 'text/javascript';
-    /*if else 这几句话必须要写到这位置处，不能放最后，因为if中js加载中script.readyState存在好几种状态，
-     只有状态改变‘readystatechange’事件才会触发，但现在浏览器加载速度很快，当解析到该事件时JS有可能已经加载完，
-     所以事件根本不会触发，所以要写到前面*/
-    if (script.readystate) { //兼容IE
-        script.onreadystatechange = function(e) { //状态改变事件才触发
-            if (script.readyState == 'loaded' || script.readyState == 'complete') {
-                callBack(e);
-                script.onreadystatechange = null;
-            }
-        }
-    } else {
-        script.onload = function(e) {
-            callBack(e);
-        }
-    }
-    script.src = url;
-    document.body.appendChild(script);
-    // return "jj";
-}
-
-
-
-/**
- * 上下滚动，事件
- * @param id,//滚动标签Id
- * @param callbackDwonFunc function,//上拉触底促发事件
- * @param callbackUpFunc function,//下拉刷新促发事件
- * **/
-function scroll(id,callbackDwonFunc,callbackUpFunc) {
-
-    $("#" + id).on("more",function(ev,scrollbox) {
-        console.log("触底");
-        // alert("触底");
-
-        setTimeout(function () {
-            /* var htmlStr = "";
-             for (var i = 0; i < 120; i++) {
-             htmlStr += "<li>append" + i + "</li>"
-             }
-             ;
-
-             $("#ScrollContent ul").append(htmlStr);*/
-            scrollbox.reset();
-            callbackDwonFunc();
-
-        }, 0);
-    });
-
-    $("#" + id).on("reload",function(ev,scrollbox){
-        console.log("下拉");
-        setTimeout(function(){
-
-            scrollbox.reset();
-            callbackUpFunc();
-        },0);
-    });
-
-}
-
-
-
-/**
- * 判断是否是数字
- * @apram data,//需要校验的数据
- * return ；//返回true是数字，否则不是
- * **/
-function isNumber(data) {
-    // var reg = new RegExp("^\\d+$");
-    var reg = new RegExp("^\\d+(\\.\\d+)?$");
-    if(reg.test(data))
-    {
-        // 返回true是数字，否则不是
-        return true;
-    }
-    else
-    {
-        //不是数字
-        return false;
-    }
-}
-
-/**
- * 额外按钮操作
- * **/
-var buttonOperate = {
-    /**配置信息
-     * **/
-    config:{
-        button:null,//按钮对象
-    },
-    /**创建按钮
-     * @param paramInfo json,//按钮配置信息
-     * @param callbackFunc function,//按钮点击回调函数 callbackFunc（button）,//button为创建的按钮对象
-     *
-     * paramInfo = {
-     * 字段名称               类型	 是否必选	说明
-         x:,//	              Number	否	    x坐标
-         y:,//	              Number	否    	y坐标
-         width:,//	          Number	否        宽
-         height:,//	          Number	否	      高
-         data:{
-         title:,//	          String	否	    按钮内容
-         titleColor:,//	       String	否	    按钮内容颜色
-         textSize:,//	       String	否	    按钮内容字号
-         bgImage:,//	       String	否	    按钮背景图的路径,
-         isAlwaysInFront:,//   boolean	否	    是否置顶（显示在屏幕最上层）
-         	},//Object	是	按钮数据
-
-       }
-     * **/
-    createButton:function (paramInfo,callbackFunc) {
-        /**字段名称	类型	是否必选	说明
-         x	Number	是	x坐标
-         y	Number	是	y坐标
-         width	Number	是	宽
-         height	Number	是	高
-         data	Object	是	按钮数据
-         title	String	是	按钮内容
-         titleColor	String	是	按钮内容颜色
-         textSize	String	是	按钮内容字号
-         bgImage	String	是	按钮背景图的路径,支持 wgt:// wgts:// res:// file:// 路径协议详见CONSTANT中PathTypes
-         isAlwaysInFront	boolean	否	是否置顶（显示在屏幕最上层）
-         * **/
-        var param = {
-            x:screen.width / 2,
-            y:screen.height /2,
-            width:200,
-            height:90,
-            data: {
-                title:"button",
-                titleColor:"#111111",
-                // bgImage:"../../images/load.png",
-                textSize:12,
-                isAlwaysInFront:true
-            }
-        };
-
-        param.x = paramInfo.x != undefined ? paramInfo.x : param.x;
-        param.y = paramInfo.y != undefined ? paramInfo.y : param.y;
-        param.width = paramInfo.width != undefined ? paramInfo.width : param.width;
-        param.height = paramInfo.height != undefined ? paramInfo.height : param.height;
-        if(paramInfo.data != undefined)
-        {
-            param.data.title = paramInfo.data.title != undefined ? paramInfo.data.title : param.data.title;
-            param.data.titleColor = paramInfo.data.titleColor != undefined ? paramInfo.data.titleColor : param.data.titleColor;
-            param.data.bgImage = paramInfo.data.bgImage != undefined ? paramInfo.data.bgImage : param.data.bgImage;
-            param.data.textSize = paramInfo.data.textSize != undefined ? paramInfo.data.textSize : param.data.textSize;
-            param.data.isAlwaysInFront = paramInfo.data.isAlwaysInFront != undefined ? paramInfo.data.isAlwaysInFront : param.data.isAlwaysInFront;
-        }
-
-        // alert(JSON.stringify(param));
-        buttonOperate.config.button = uexButton.create(param);
-        // uexButton.open(1001,param.x,param.y,param.width,param.height,JSON.stringify(param.data));//创建按钮
-        uexButton.onClick = function(button){
-            if(callbackFunc != null && callbackFunc != undefined)
-            {
-                callbackFunc(button);
-                buttonOperate.closeButton();
-            }
-        }
-    },
-    /**移除按钮
-     **/
-    closeButton:function () {
-        uexButton.close(buttonOperate.config.button);
-    }
-}
-
-/**
- * 画表图
- * **/
-var drawTableChart = {
-
-    /**条形柱水平柱状图（巡店向导）
+var DrawTableChart = {
+    /**
+     * 条形柱水平柱状图（巡店向导）
      * @param id string//canvas元素id
      * @param sum1 number // 动态变化数值 计算数据
      * @param sum2 number //总长数值
      * @param sumTxt number // 动态变化数值 显示数据 若不传显示sum1
-     *
      */
     histogramHorizon:function (id,sum1,sum2,sumTxt) {
         setTimeout(function () {
@@ -5499,8 +5059,8 @@ var drawTableChart = {
             }
         },0);
     },
-
-    /**条形柱弧度图（巡店向导）
+    /**
+     * 条形柱弧度图（巡店向导）
      * @param id string//canvas元素id
      * @param sum1 number // 动态变化数值 计算数据
      * @param sum2 number //总长数值
@@ -5515,7 +5075,6 @@ var drawTableChart = {
                 sum2 = 1;
                 b = false;
             }
-
 
             var canvas=document.getElementById(id);
             var circle = {
@@ -5591,8 +5150,8 @@ var drawTableChart = {
             }
         },0);
     },
-
-    /**条形柱水平状图(业绩分析)
+    /**
+     * 条形柱水平状图(业绩分析)
      * @param id string  //canvas元素id
      *  @param sum1 number //动态变化数值
      *  @param sum2 number //图形总长
@@ -5627,7 +5186,6 @@ var drawTableChart = {
                 // 渐变
                 var linearGradient1 = context.createLinearGradient(0,0,900,0);
 
-
                 // 图形1 填充颜色、(x,y,w,h)
                 // context.fillStyle=bg1;
 
@@ -5638,7 +5196,6 @@ var drawTableChart = {
                 // 绿色渐变
                 // linearGradient1.addColorStop(0,'rgb(153,255,204)');
                 // linearGradient1.addColorStop(1,'rgb(0,204,0)');
-
 
                 linearGradient1.addColorStop(0,co1);
                 linearGradient1.addColorStop(1,co2);
@@ -5656,12 +5213,11 @@ var drawTableChart = {
                 context.fillText(word,fx,fy);
                 context.textAlign="right";
                 context.fillText(word2,fx2,fy);
-
             }
         },0);
     },
-
-    /**条形柱水平状图(业绩分析)
+    /**
+     * 条形柱水平状图(业绩分析)
      * @param id string  //canvas元素id
      *  @param sum1 number //动态变化数值 百分比带小数点
      *  @param sum2 number //图形总长
@@ -5696,7 +5252,6 @@ var drawTableChart = {
                 // 渐变
                 var linearGradient1 = context.createLinearGradient(0,0,900,0);
 
-
                 // 图形1 填充颜色、(x,y,w,h)
                 // context.fillStyle=bg1;
 
@@ -5707,7 +5262,6 @@ var drawTableChart = {
                 // 绿色渐变
                 // linearGradient1.addColorStop(0,'rgb(153,255,204)');
                 // linearGradient1.addColorStop(1,'rgb(0,204,0)');
-
 
                 linearGradient1.addColorStop(0,co1);
                 linearGradient1.addColorStop(1,co2);
@@ -5725,12 +5279,11 @@ var drawTableChart = {
                 context.fillText(word,fx,fy);
                 context.textAlign="right";
                 context.fillText(word2,fx2,fy);
-
             }
         },0);
     },
-
-    /**饼图 一圆
+    /**
+     * 饼图 一圆
      * @param id string  //元素id
      * @param title string  //标题
      * @param data1 array  //饼图比例数据
@@ -5813,8 +5366,8 @@ var drawTableChart = {
             // myChart.setOption(option);
         },0);
     },
-
-    /**饼图 双圆
+    /**
+     * 饼图 双圆
      * @param id string  //元素id
      * @param title string  //标题
      * @param data1 array  //圆环中间数据
@@ -5824,18 +5377,15 @@ var drawTableChart = {
      * @param callbackFunc function  //点击图表回调函数
      * **/
     drawPie2:function(id,titles,data1,data2,data3 ,color,callbackFunc){
-
         if(data2.length == 0)
         {
             data1 = [];
         }
         // setTimeout(function () {
         var option = null;
-        // alert("饼图1");
+
         // 路径配置
         var myChart = echarts.init(document.getElementById(id)); // 实例化
-
-        // alert("饼图2");
 
         // 指定图表的配置项和数据
         // title 标题(含副标题)
@@ -5888,7 +5438,6 @@ var drawTableChart = {
             ],
             // color:['red','orange','yellow','green','blue','purple','pink','#666',"#ccc","#000"]
             // color:['#729F82','#CB8608','#53C6A6','#4AB6FF','#FC817A','#C4332B','#2D4454','#5E9FA8',"#729F82","#729F82"]
-
         };
 
         if(color != undefined && color.constructor == Array)
@@ -5915,9 +5464,8 @@ var drawTableChart = {
         {
             // 添加点击事件
             myChart.on('click', function (params) {
-
                 callbackFunc(params);
-                // console.log(params);
+
                 // if(params.value){
                 //     alert("单击了"+params.name+"柱状图");
                 // }else{
@@ -5930,11 +5478,8 @@ var drawTableChart = {
         if (option && typeof option === "object") {
             myChart.setOption(option,true);
         }
-
-        // alert("饼图3");
         // },0);
     },
-
     /**
      * 饼图 双圆
      * @param id string  //元素id
@@ -5945,9 +5490,8 @@ var drawTableChart = {
      * @param color array  //颜色值数组，如：color = ["#ffffff"] ,不传使用随机色
      * **/
     drawPie22:function (id,titles,data1,data2,callbackFunc,data3 ,color) {
-        drawTableChart.drawPie2(id,titles,data1,data2,data3 ,color,callbackFunc);
+        DrawTableChart.drawPie2(id,titles,data1,data2,data3 ,color,callbackFunc);
     },
-
     /**
      * 画柱状图 单个
      * @param id string  //元素id
@@ -6068,7 +5612,6 @@ var drawTableChart = {
         myChart.setOption(option,true);
 
     },
-
     /**
      * 折线图（诊断报告）
      * @param id string 实例化对象元素
@@ -6076,7 +5619,6 @@ var drawTableChart = {
      * @param data2 array 折线数值
      * **/
     drawGraph:function (id,data1,data2){
-
         setTimeout(function () {
             // 实例化
             var myChart = echarts.init(document.getElementById(id));
@@ -6290,7 +5832,6 @@ var drawTableChart = {
             myChart.setOption(option);
         },0);
     },
-
     /**
      * 矩形条形图
      * @param id string;//需要画图的标签id;
@@ -6382,7 +5923,14 @@ var drawTableChart = {
             }
         },0);
     },
-
+    /**
+     * 条形柱水平柱状图（巡店向导）
+     * @param id string//canvas元素id
+     * @param sum1 number // 动态变化数值 计算数据
+     * @param sum2 number //总长数值
+     * @param sumTxt number // 动态变化数值 显示数据 若不传显示sum1
+     * @param sumTxt2 number // 动态变化数值 显示数据 若不传显示sum2
+     */
     drawCanvas2:function (id,sum1,sum2,sumTxt,sumTxt2) {
         setTimeout(function () {
             var num=true;
@@ -6431,38 +5979,226 @@ var drawTableChart = {
             }
         })
     },
-
-    /**画图没有数据时显示暂无数据，有数据时显示图表
+    /**
+     * 画表图（原生），如折线图，比例图等
+     * @param tag int ;0//饼状图
+     * @param ctrl boolean ;true//打开，false关闭
      * **/
-    cHeight:function (id,isHide){
-        // var cHeight = document.getElementById(id);
-        //     cHeight.innerHTML = msg == undefined ? '暂无数据' : '';
-        //     cHeight.style.textAlign = msg == undefined ? 'center' : '';
-        //     cHeight.style.height=0+'px';//设置高度
+    drawChartNative:function(tag, ctrl) {
+        switch (tag)
+        {
+            case 0 :
+            {
+                /*
+                 var json = {
+                 id:,//(必选) 唯一标识符
+                 left:,//(可选) 左间距,默认0
+                 top:,//(可选) 上间距,默认0
+                 width:,//(可选) 宽度,默认屏幕宽度
+                 height:,//(可选) 高度,默认屏幕高度
+                 bgColor:,//(可选) 背景颜色,默认透明(仅Android)
+                 showUnit:,//(可选) 是否显示单位,默认false
+                 unit:,//(可选) 单位
+                 valueTextColor:,//(可选) 饼状图上值的文本颜色,默认#ffffff
+                 valueTextSize:,//(可选) 饼状图上值的字体大小,默认13
+                 desc:,//(可选) 描述
+                 descTextColor:,//(可选) 描述及图例文本颜色,默认#000000
+                 descTextSize:,//(可选) 描述及图例字体大小,默认12
+                 showValue:,//(可选) 是否显示value,默认true
+                 showLegend:,//(可选) 是否显示图例,默认false
+                 legendPosition:,//(可选) 图例显示的位置,取值范围:bottom-饼状图下方;right-饼状图右侧,默认bottom
+                 duration:,//(可选) 显示饼状图动画时间,单位ms,默认1000
+                 isScrollWithWeb:,//(可选) 是否跟随网页滑动,默认false
+                 showTitle:,//(可选) 是否显示title,默认true
+                 showPercent:,//(可选) 是否用百分比代替value,默认true
+                 showCenter:,//(可选) 是否显示中心圆,默认true
+                 centerColor:,//(可选) 中心圆颜色,默认透明
+                 centerTitle:,//(可选) 中心标题
+                 centerSummary:,//(可选) 中心子标题
+                 centerRadius:,//(可选) 中心圆半径百分比,默认40
+                 centerTransRadius:,//(可选) 中心圆半透明部分半径,默认42
+                 data:[//(必选) 数组
+                 {
+                 title:,//(必选) 色块名称
+                 color:,//(必选) 色块颜色
+                 value://(必选) 色块值
+                 }
+                 ]
+                 };
+                 */
+                var json = {
+                    id:2,
+                    left:0,
+                    top:500,
+                    width:800,
+                    height:800,
+                    bgColor:"#cccccc",
+                    showUnit:true,
+                    unit:"cc",
+                    showCenter:true,
+                    centerColor:"#00000000",
+                    centerTitle:"我是标题!",
+                    centerSummary:"我是子标题",
+                    centerRadius:55,
+                    centerTransRadius:57,
+                    valueTextColor:"#ffffff",
+                    valueTextSize:15,
+                    desc:"测试饼状图功能",
+                    descTextColor:"#000000",
+                    descTextSize:9,
+                    showTitle:true,
+                    showValue:true,
+                    showPercent:false,
+                    showLegend:true,
+                    legendPosition:"bottom",
+                    duration:800,
+                    data:[
+                        {
+                            title:"title1",
+                            color:"#c12552",
+                            value:0.9
+                        },
+                        {
+                            title:"title2",
+                            color:"#ff6600",
+                            value:0.5
+                        },
+                        {
+                            title:"title3",
+                            color:"#f5c700",
+                            value:0.6
+                        },
+                        {
+                            title:"title4",
+                            color:"#6a961f",
+                            value:0.4
+                        },
+                        {
+                            title:"title5",
+                            color:"#b36435",
+                            value:0.8
+                        }
+                    ]
+                };
+                if(ctrl)
+                {
+                    //打开一个饼状图
+                    uexChart.openPieChart(json);
+                }
+                else
+                {
+                    uexChart.closePieChart(json);
+                }
 
-        var cHeight1 = document.getElementById(id);
-        var cHeight = document.getElementById(id + "0");
-        if(isHide == undefined)
-        {
-            cHeight.style.display = '';
-            cHeight1.style.display = 'none';
+                break;
+            }
         }
-        else
-        {
-            cHeight.style.display = 'none';
-            cHeight1.style.display = '';
-        }
-    },
+    }
 }
 
-var actionSheetOperate = {
+/**
+ * 额外按钮操作（原生）
+ * **/
+var ButtonOperate = {
+    /**
+     * 配置信息
+     * **/
+    config:{
+        button:null,//按钮对象
+    },
+    /**
+     * 创建按钮
+     * @param paramInfo json,//按钮配置信息
+     * @param callbackFunc function,//按钮点击回调函数 callbackFunc（button）,//button为创建的按钮对象
+     *
+     * paramInfo = {
+     * 字段名称               类型	 是否必选	说明
+         x:,//	              Number	否	    x坐标
+         y:,//	              Number	否    	y坐标
+         width:,//	          Number	否        宽
+         height:,//	          Number	否	      高
+         data:{
+         title:,//	          String	否	    按钮内容
+         titleColor:,//	       String	否	    按钮内容颜色
+         textSize:,//	       String	否	    按钮内容字号
+         bgImage:,//	       String	否	    按钮背景图的路径,
+         isAlwaysInFront:,//   boolean	否	    是否置顶（显示在屏幕最上层）
+         	},//Object	是	按钮数据
+
+       }
+     * **/
+    createButton:function (paramInfo,callbackFunc) {
+        /**
+         * 字段名称	类型	是否必选	说明
+         x	Number	是	x坐标
+         y	Number	是	y坐标
+         width	Number	是	宽
+         height	Number	是	高
+         data	Object	是	按钮数据
+         title	String	是	按钮内容
+         titleColor	String	是	按钮内容颜色
+         textSize	String	是	按钮内容字号
+         bgImage	String	是	按钮背景图的路径,支持 wgt:// wgts:// res:// file:// 路径协议详见CONSTANT中PathTypes
+         isAlwaysInFront	boolean	否	是否置顶（显示在屏幕最上层）
+         * **/
+        var param = {
+            x:screen.width / 2,
+            y:screen.height /2,
+            width:200,
+            height:90,
+            data: {
+                title:"button",
+                titleColor:"#111111",
+                // bgImage:"../../images/load.png",
+                textSize:12,
+                isAlwaysInFront:true
+            }
+        };
+
+        param.x = paramInfo.x != undefined ? paramInfo.x : param.x;
+        param.y = paramInfo.y != undefined ? paramInfo.y : param.y;
+        param.width = paramInfo.width != undefined ? paramInfo.width : param.width;
+        param.height = paramInfo.height != undefined ? paramInfo.height : param.height;
+        if(paramInfo.data != undefined)
+        {
+            param.data.title = paramInfo.data.title != undefined ? paramInfo.data.title : param.data.title;
+            param.data.titleColor = paramInfo.data.titleColor != undefined ? paramInfo.data.titleColor : param.data.titleColor;
+            param.data.bgImage = paramInfo.data.bgImage != undefined ? paramInfo.data.bgImage : param.data.bgImage;
+            param.data.textSize = paramInfo.data.textSize != undefined ? paramInfo.data.textSize : param.data.textSize;
+            param.data.isAlwaysInFront = paramInfo.data.isAlwaysInFront != undefined ? paramInfo.data.isAlwaysInFront : param.data.isAlwaysInFront;
+        }
+
+        // alert(JSON.stringify(param));
+        ButtonOperate.config.button = uexButton.create(param);
+        // uexButton.open(1001,param.x,param.y,param.width,param.height,JSON.stringify(param.data));//创建按钮
+        uexButton.onClick = function(button){
+            if(callbackFunc != null && callbackFunc != undefined)
+            {
+                callbackFunc(button);
+                ButtonOperate.closeButton();
+            }
+        }
+    },
+    /**
+     * 移除按钮
+     **/
+    closeButton:function () {
+        uexButton.close(ButtonOperate.config.button);
+    }
+};
+
+/**
+ * 菜单操作对象（原生）
+ * **/
+var ActionSheetOperate = {
     /**
      * 底部隐藏菜单
      * @param menuList function,//菜单数组名
      * @param callbackFunc function,//回调函数 callbackFunc(index),index是索引值
      * **/
     menuBottom:function (menuList,callbackFunc) {
-        /**参数名称	参数类型	是否必选	说明
+        /**
+         * 参数名称	参数类型	是否必选	说明
          x	Number	是	x坐标
          y	Number	是	y坐标(已失效,请传0)
          width	Number	是	宽度
@@ -6640,166 +6376,187 @@ var actionSheetOperate = {
     }
 };
 
-
-
 /**
- * 1级下拉内容
+ * 字符串处理操作
  * **/
-function selectData(tag1,tag2,data){
-    var showBankDom = document.querySelector(tag1);  //触发元素(点击)
-    var bankIdDom = document.querySelector(tag2); //存储结果元素
+var StringOperate = {
+    /**
+     * 替换指定位置的字符串
+     * @param str string,//需要处理的字符串
+     * @param begin number;//替换字符的起始位置,不传就是字符串的第一个字符起
+     * @param end number;//替换字符的结束位置,不传就是字符串的长度
+     * @param char string;//替换字符
+     * **/
+    replace:function (str,begin,end,char) {
+        str += "";
+        begin = begin == undefined || begin == null ? 0 : begin;
+        end = end == undefined || end == null ? str.length : end;
+        char = char == undefined || char == null ? '*' : char + "";
+        var fstStr = str.substring(0,begin);
+        var scdStr = str.substring(begin,end);
+        var lstStr = str.substring(end,str.length);
+        // var matchExp = /\w/g;//'/g'表示全局；本正则字符串是把全局中的'w'替换掉
+        var matchExp = /[\s\S]/g;//'/g'表示全局；本正则字符串是把全局中的'w'替换掉
+        /* 最开始以为.可以匹配任意字符，后来发现有问题，匹配不了换行符\n
+         查了下资料，用[\s\S]匹配可以
+         解释：\s空白符，\S非空白符，所以[\s\S]是任意字符*/
+        scdStr = scdStr.replace(matchExp,char);
 
-    showBankDom.addEventListener('click', function () {  //监听事件
+        /*str="5=a,6=b,7=c";
+        str=str.replace(/(\d+)=(\w)/g,"$2=$1");
+        alert(str);//"a=5,b=6,c=7"*/
 
-        var bankId = showBankDom.dataset['id'];  //data-id
-        var bankName = showBankDom.dataset['value']; //data-value
-
-        // 实例化
-        var bankSelect = new IosSelect(1,  //level
-            [data],  //data
-            { // options
-                container: '.container',
-                title: '请选择',
-                itemHeight: 50,
-                itemShowCount: 7,
-                oneLevelId: bankId,
-                callback: function (selectOneObj) { //回调函数
-                    bankIdDom.value = selectOneObj.id;
-                    showBankDom.innerHTML = selectOneObj.value;
-                    showBankDom.dataset['id'] = selectOneObj.id;
-                    showBankDom.dataset['value'] = selectOneObj.value;
-                }
-            });
-    });
-}
-
-/**
- * 删除数组（数组成员必须是对象，含index字段,index是数组地址，如：[{inedx:0}]）
- * @param arr Array,//待处理的数组
- * @param index number,//删除成员的数组的开始地址
- * @param count number,//删除成员的数量
- * return arr//返回处理后的数组
- * **/
-function delArray(arr,index,count) {
-    arr.splice(index,count);//index为删除开始的地址，1为删除数量
-
-    for(var i = 0; i < arr.length; i++)
-    {
-        arr[i].index = i;
-    }
-
-    return arr;
-}
-
-/**
- * 列表操作（原生）
- * **/
-var listViewOperate = {
-    open:function () {
-        var params = {
-            listViewId:"0",
-            layout:{
-                center:["res://case1/layout_item1.xml","res://case1/layout_item2.xml"],
-                left:["res://case1/layout_left.xml"],
-                right:["res://case1/layout_right.xml"]
-            }
-        };
-        var data = JSON.stringify(params);
-        uexNBListView.initLayout(data, function(error){
-            alert(error);
-        });
-    }
-}
-
-/**
- * 图片不存在显示默认图片
- * @param imgPath string;//图片路径
- * **/
-/*function nofind(imgPath){
-    var img = event.srcElement;
-    img.src = imgPath == undefined ? "../../images/nimg.jpg" : imgPath;
-    img.onerror = null; //控制不要一直跳动
-}*/
-
-/**
- * 标签位置变化处理，防止软键盘弹出标签下移； 使用场景：当输入框在顶部，posion属性是fixed时调用
- * @param tagIdList array/string ;//标签ID数组或字符串 若tagIdList为null/undefined
- * **/
-function fixedChange(tagIdList) {
-    if(tagIdList == undefined || tagIdList == null)
-    {
-        tagIdList = ["ScrollContent","Header","Page"];
-    }
-    if(tagIdList.constructor != Array)
-    {
-        tagIdList = [tagIdList]
-    }
-
-    for(var i = 0; i < tagIdList.length; i++)
-    {
-        var ele = document.getElementById(tagIdList[i]);
-        // ScrollPositonOperate.scrollTo();
-        // ele.style.position = ele.style.position == "absolute" ? "fixed" : "absolute";
-        if(ele.style.position != "absolute")
+        return fstStr + scdStr + lstStr;
+    },
+    /**
+     * 判断是否是数字
+     * @apram data,//需要校验的数据
+     * return ；//返回true是数字，否则不是
+     * **/
+    isNumber:function(data) {
+        // var reg = new RegExp("^\\d+$");
+        var reg = new RegExp("^\\d+(\\.\\d+)?$");
+        if(reg.test(data))
         {
-            ele.style.position = "absolute";
+            // 返回true是数字，否则不是
+            return true;
         }
         else
         {
-            ele.style = "";
+            //不是数字
+            return false;
+        }
+    },
+    /**
+     * 数字转化成汉子大写汉字
+     * @prama money int,//数字
+     * **/
+    convertCurrency:function(money) {
+        // 汉字的数字
+        var cnNums = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+        // 基本单位
+        var cnIntRadice = ['', '拾', '佰', '仟'];
+        // 对应整数部分扩展单位
+        var cnIntUnits = ['', '万', '亿', '兆'];
+        // 对应小数部分单位
+        var cnDecUnits = ['角', '分', '毫', '厘'];
+        // 整数金额时后面跟的字符
+        var cnInteger = '整';
+        // 整型完以后的单位
+        var cnIntLast = '元';
+        // 最大处理的数字
+        var maxNum = 999999999999999.9999;
+        // 金额整数部分
+        var integerNum;
+        // 金额小数部分
+        var decimalNum;
+        // 输出的中文金额字符串
+        var chineseStr = '';
+        // 分离金额后用的数组，预定义
+        var parts;
+
+        if (money === '') {
+            return '';
         }
 
-        // document
+        money = parseFloat(money);
+
+        if (money >= maxNum) {
+            // 超出最大处理数字
+            return '';
+        }
+
+        if (money === 0) {
+            chineseStr = cnNums[0] + cnIntLast + cnInteger;
+            return chineseStr;
+        }
+        // 转换为字符串
+        money = money.toString();
+
+        if (money.indexOf('.') === -1) {
+            integerNum = money;
+            decimalNum = '';
+        }
+        else
+        {
+            parts = money.split('.');
+            integerNum = parts[0];
+            decimalNum = parts[1].substr(0, 4);
+        }
+        // 获取整型部分转换
+        if (parseInt(integerNum, 10) > 0)
+        {
+            var zeroCount = 0;
+            var IntLen = integerNum.length;
+            for (var i = 0; i < IntLen; i++)
+            {
+                var n = integerNum.substr(i, 1);
+                var p = IntLen - i - 1;
+                var q = p / 4;
+                var m = p % 4;
+                if (n === '0')
+                {
+                    zeroCount++;
+                }
+                else
+                {
+                    if (zeroCount > 0)
+                    {
+                        chineseStr += cnNums[0];
+                    }
+                    // 归零
+                    zeroCount = 0;
+                    chineseStr += cnNums[parseInt(n)] + cnIntRadice[m];
+                }
+
+                if (m === 0 && zeroCount < 4)
+                {
+                    chineseStr += cnIntUnits[q];
+                }
+            }
+
+            chineseStr += cnIntLast
+        }
+
+        // 小数部分
+        if (decimalNum !== '')
+        {
+            var decLen = decimalNum.length;
+            for (var j = 0; j < decLen; j++)
+            {
+                var num = decimalNum.substr(j, 1);
+                if (num !== '0')
+                {
+                    chineseStr += cnNums[Number(num)] + cnDecUnits[j];
+                }
+            }
+        }
+
+        if (chineseStr === '')
+        {
+            chineseStr += cnNums[0] + cnIntLast + cnInteger;
+        }
+        else if (decimalNum === '')
+        {
+            chineseStr += cnInteger;
+        }
+
+        return chineseStr
     }
-
-    // 距离顶部距离
-    headTop("#ScrollContent");
-
-    // // ScrollPositonOperate.scrollTo();
-    // document.getElementById("ScrollContent").style.position = "absolute";
-    // // scr.style.height = screen.height + "px";
-    // document.getElementById("Header").style.position = "absolute";
-    // document.getElementById("Page").style.position = "absolute";
-    //
-    // // document.getElementById("Page").style.height = screen.height + "px";
-
-}
+};
 
 /**
- * 六棱柱菜单操作
+ * 六棱柱菜单操作(原生)
  * **/
-var hexagonalOperate = {
-    /**配置数据
+var HexagonalOperate = {
+    /**
+     * 配置数据
      * **/
     config:{
-        value:[
-            {
-                pic:"res://service.png",//图片路径,只支持res://协议头
-                text:IPConfig.IP,//文本内容
-            },
-            {
-                pic:"res://serviceTest.png",//图片路径,只支持res://协议头
-                text:IPConfig.IPTest,//文本内容
-            },
-            {
-                pic:"res://service.png",//图片路径,只支持res://协议头
-                text:IPConfig.IP,//文本内容
-            },
-            {
-                pic:"res://serviceTest.png",//图片路径,只支持res://协议头
-                text:IPConfig.IPTest,//文本内容
-            },
-            {
-                pic:"res://service.png",//图片路径,只支持res://协议头
-                text:IPConfig.IP,//文本内容
-            },
-            {
-                pic:"res://serviceTest.png",//图片路径,只支持res://协议头
-                text:IPConfig.IPTest,//文本内容
-            }
-        ],//value成员：{pic:"图片路径,只支持res://协议头",text:"文本内容"}
+        value:[],//value成员：{pic:"图片路径,只支持res://协议头",text:"文本内容"}
     },
-    /**打开六棱柱菜单
+    /**
+     * 打开六棱柱菜单
      * @param value array,//同hexagonalOperate.config.value
      * @param callbackFunc function,//点击回调函数,回传value数组地址
      * @param paramJson json,//六棱柱菜单布局参数
@@ -6810,9 +6567,9 @@ var hexagonalOperate = {
             height:'高度'
         }
      * **/
-    open:function (callbackFunc,value,paramJson) {
+    open:function (value,callbackFunc,paramJson) {
         var param = {
-            value:value == undefined || value == null ? hexagonalOperate.config.value : value
+            value:value == undefined || value == null ? HexagonalOperate.config.value : value
         };
 
         var jsonData=JSON.stringify(param);
@@ -6842,133 +6599,50 @@ var hexagonalOperate = {
         var height = paramJson != undefined && paramJson.height != undefined ? paramJson.height : pad;
         uexHexagonal.open(x,y,width,height);//打开
     }
-}
-
-/**
- * 字符串替换处理操作
- * **/
-var strReplaceOperate = {
-    /**替换指定位置的字符串
-     * @param str string,//需要处理的字符串
-     * @param begin number;//替换字符的起始位置,不传就是字符串的第一个字符起
-     * @param end number;//替换字符的结束位置,不传就是字符串的长度
-     * @param char string;//替换字符
-     * **/
-    replace:function (str,begin,end,char) {
-        str += "";
-        begin = begin == undefined || begin == null ? 0 : begin;
-        end = end == undefined || end == null ? str.length : end;
-        char = char == undefined || char == null ? '*' : char + "";
-        var fstStr = str.substring(0,begin);
-        var scdStr = str.substring(begin,end);
-        var lstStr = str.substring(end,str.length);
-        // var matchExp = /\w/g;//'/g'表示全局；本正则字符串是把全局中的'w'替换掉
-        var matchExp = /[\s\S]/g;//'/g'表示全局；本正则字符串是把全局中的'w'替换掉
-        /* 最开始以为.可以匹配任意字符，后来发现有问题，匹配不了换行符\n
-         查了下资料，用[\s\S]匹配可以
-         解释：\s空白符，\S非空白符，所以[\s\S]是任意字符*/
-        scdStr = scdStr.replace(matchExp,char);
-
-        /*str="5=a,6=b,7=c";
-        str=str.replace(/(\d+)=(\w)/g,"$2=$1");
-        alert(str);//"a=5,b=6,c=7"*/
-
-        return fstStr + scdStr + lstStr;
-    }
-}
-
-/**
- * 跨页面通道并且传送数据
- * **/
-var channelAcrossOperate = {
-    /**配置
-     * **/
-    config:{
-        channelId:"channelId",//通道id
-        getChannelDataFunc:null//得到通道数据回调函数
-    },
-    /**通道并获取数据
-     * @param callbackFunc function;//通道获取数据回调函数
-     * @param channelId string;//通道获取数据回调函数 频道唯一标识符,可以不传
-     * **/
-    channel:function (callbackFunc,channelId) {
-        channelAcrossOperate.config.channelId = channelId == undefined || channelId == null ? channelAcrossOperate.config.channelId : channelId;
-        channelAcrossOperate.config.getChannelDataFunc = callbackFunc == undefined || callbackFunc == null ? channelAcrossOperate.config.getChannelDataFunc : callbackFunc;
-
-        /** 回调
-         * **/
-        function onNotification(dataJson){
-            if(channelAcrossOperate.config.getChannelDataFunc != undefined && channelAcrossOperate.config.getChannelDataFunc != null)
-            {
-                channelAcrossOperate.config.getChannelDataFunc(dataJson);
-            }
-        }
-
-        uexWindow.onNotification = onNotification;
-        uexWindow.subscribeChannelNotification(channelAcrossOperate.config.channelId, "onNotification");
-    },
-    /**调取通道并获取数据
-     * @param callbackFunc function;//通道获取数据回调函数
-     * @param channelId string;//通道获取数据回调函数 频道唯一标识符,可以不传
-     * **/
-    getChannel:function (callbackFunc,channelId) {
-        window.uexOnload = function(type){
-
-            if(DeviceOperate.config.onloadFunc != null)
-            {
-                DeviceOperate.config.onloadFunc();
-            }
-
-            channelAcrossOperate.channel(callbackFunc,channelId);
-        }
-    },
-    /**发送数据到通道
-     * **/
-    sendChannel:function (data) {
-        data = typeof(data) == 'object' || data.constructor == Array ? JSON.stringify(data) : data;
-
-        /**向调取客户列表的页面发送选择客户
-         * **/
-        uexWindow.publishChannelNotificationForJson(channelAcrossOperate.config.channelId,data);
-    }
 };
 
 /**
- * 侧滑窗口操作
+ * 侧滑窗口操作(原生)
  * **/
-var slidingWindowOperate = {
-    /**配置信息
+var SlidingWindowOperate = {
+    /**
+     * 配置信息
      * **/
     config:{
         leftSliding:{
-            width:300,
-            url:"../setting/setting.html"
+            width:300,//左滑窗口宽度
+            url:null //左滑窗口html文件路径
         },
         rightSliding:{
-            width:300,
-            url:"../setting/setting.html"
+            width:300,//右滑窗口宽度
+            url:null //右滑窗口html文件路径
         },
         animationId:1,
         // bg:"res://service.png"
         // bg:"#000"
     },
-    /**设置侧滑窗口
-     * @param leftSlidingPage string,//左滑窗口路径
-     * @param rightSlidingPage string,//右滑窗口路径
+    /**
+     * 设置侧滑窗口
+     * @param leftSlidingPage string,//左滑窗口html文件路径
+     * @param rightSlidingPage string,//右滑窗口html文件路径
      * **/
     setSlidingWindow:function (leftSlidingPage,rightSlidingPage) {
 
-        slidingWindowOperate.config.leftSliding.url = leftSlidingPage == undefined || leftSlidingPage == null ?
-            slidingWindowOperate.config.leftSliding.url : leftSlidingPage;
-        slidingWindowOperate.config.rightSliding.url = rightSlidingPage == undefined || rightSlidingPage == null ?
-            slidingWindowOperate.config.rightSliding.url : rightSlidingPage;
-        uexWindow.setSlidingWindow(slidingWindowOperate.config);
+        SlidingWindowOperate.config.leftSliding.url =
+            leftSlidingPage == undefined || leftSlidingPage == null ?
+                SlidingWindowOperate.config.leftSliding.url : leftSlidingPage;
+        SlidingWindowOperate.config.rightSliding.url =
+            rightSlidingPage == undefined || rightSlidingPage == null ?
+                SlidingWindowOperate.config.rightSliding.url : rightSlidingPage;
+        uexWindow.setSlidingWindow(SlidingWindowOperate.config);
 
-        /**是否可用,0:不可用,1:可用
+        /**
+         * 是否可用,0:不可用,1:可用
          * **/
         uexWindow.setSlidingWindowEnabled(1);
     },
-    /**打开侧滑窗口
+    /**
+     * 打开侧滑窗口
      * @param openSliding int,//0：打开左滑窗口，1：打开右滑窗口
      * **/
     openSlidingWindow:function (openSliding) {
@@ -6982,7 +6656,8 @@ var slidingWindowOperate = {
         };
         uexWindow.toggleSlidingWindow(params);
     },
-    /**关闭侧滑
+    /**
+     * 关闭侧滑
      * **/
     closeSlidingWindow:function () {
         /**是否可用,0:不可用,1:可用
@@ -6992,118 +6667,254 @@ var slidingWindowOperate = {
 }
 
 /**
- * 数字转化成汉子大写汉字
- * @prama money int,//数字
+ * 跨页面通道并且传送数据
  * **/
-function convertCurrency(money) {
-    // 汉字的数字
-    var cnNums = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
-    // 基本单位
-    var cnIntRadice = ['', '拾', '佰', '仟'];
-    // 对应整数部分扩展单位
-    var cnIntUnits = ['', '万', '亿', '兆'];
-    // 对应小数部分单位
-    var cnDecUnits = ['角', '分', '毫', '厘'];
-    // 整数金额时后面跟的字符
-    var cnInteger = '整';
-    // 整型完以后的单位
-    var cnIntLast = '元';
-    // 最大处理的数字
-    var maxNum = 999999999999999.9999;
-    // 金额整数部分
-    var integerNum;
-    // 金额小数部分
-    var decimalNum;
-    // 输出的中文金额字符串
-    var chineseStr = '';
-    // 分离金额后用的数组，预定义
-    var parts;
+var ChannelAcrossOperate = {
+    /**
+     * 配置
+     * **/
+    config:{
+        channelId:"channelId",//通道id
+        getChannelDataFunc:null//得到通道数据回调函数
+    },
+    /**
+     * 通道并获取数据
+     * @param callbackFunc function;//通道获取数据回调函数
+     * @param channelId string;//通道获取数据回调函数 频道唯一标识符,可以不传
+     * **/
+    channel:function (callbackFunc,channelId) {
+        ChannelAcrossOperate.config.channelId =
+            channelId == undefined || channelId == null
+                ? ChannelAcrossOperate.config.channelId
+                : channelId;
+        ChannelAcrossOperate.config.getChannelDataFunc =
+            callbackFunc == undefined || callbackFunc == null
+                ? ChannelAcrossOperate.config.getChannelDataFunc
+                : callbackFunc;
 
-    if (money === '') {
-        return '';
-    }
-
-    money = parseFloat(money);
-
-    if (money >= maxNum) {
-        // 超出最大处理数字
-        return '';
-    }
-
-    if (money === 0) {
-        chineseStr = cnNums[0] + cnIntLast + cnInteger;
-        return chineseStr;
-    }
-    // 转换为字符串
-    money = money.toString();
-
-    if (money.indexOf('.') === -1) {
-        integerNum = money;
-        decimalNum = '';
-    }
-    else
-    {
-        parts = money.split('.');
-        integerNum = parts[0];
-        decimalNum = parts[1].substr(0, 4);
-    }
-    // 获取整型部分转换
-    if (parseInt(integerNum, 10) > 0)
-    {
-        var zeroCount = 0;
-        var IntLen = integerNum.length;
-        for (var i = 0; i < IntLen; i++)
-        {
-            var n = integerNum.substr(i, 1);
-            var p = IntLen - i - 1;
-            var q = p / 4;
-            var m = p % 4;
-            if (n === '0')
+        /**
+         * 回调
+         * **/
+        function onNotification(dataJson){
+            if(ChannelAcrossOperate.config.getChannelDataFunc != undefined
+                && ChannelAcrossOperate.config.getChannelDataFunc != null)
             {
-                zeroCount++;
+                ChannelAcrossOperate.config.getChannelDataFunc(dataJson);
             }
-            else
+        }
+
+        uexWindow.onNotification = onNotification;
+        uexWindow.subscribeChannelNotification(ChannelAcrossOperate.config.channelId, "onNotification");
+    },
+    /**
+     * 调取通道并获取数据
+     * @param callbackFunc function;//通道获取数据回调函数
+     * @param channelId string;//通道获取数据回调函数 频道唯一标识符,可以不传
+     * **/
+    getChannel:function (callbackFunc,channelId) {
+        window.uexOnload = function(type){
+
+            if(DeviceOperate.config.onloadFunc != null)
             {
-                if (zeroCount > 0)
+                DeviceOperate.config.onloadFunc();
+            }
+
+            ChannelAcrossOperate.channel(callbackFunc,channelId);
+        }
+    },
+    /**
+     * 发送数据到通道
+     * **/
+    sendChannel:function (data) {
+        data = typeof(data) == 'object' || data.constructor == Array
+            ? JSON.stringify(data)
+            : data;
+
+        /**
+         * 向调取客户列表的页面发送选择客户
+         * **/
+        uexWindow.publishChannelNotificationForJson(ChannelAcrossOperate.config.channelId,data);
+    }
+};
+
+/**
+ * 加载操作；toast提示窗；加载条；异步加载js文件
+ * **/
+var LoadingOperate = {
+    /**
+     * toast窗口的弹出和关闭（提示窗口）
+     * @param msg：提示的内容
+     * @param data ,//提示显示时长 data = {
+
+   duration:1000,//显示时长（单位：ms）
+
+        position:5,位置显示在屏幕中的位置
+         1: left_top 左上
+         2: top 上中
+         3: right_top 右上
+         4: left 左中
+         5: middle 中间
+         6: right 右中
+         7: bottom_left 下左
+         8: bottom 下中
+         9: right_bottom 右下
+
+        type:0，是否有经度条
+         0: 没有进度条
+         1: 有进度条
+     * }
+     **/
+    toast:function(msg,data) {
+        var param = {
+            msg:msg,
+            duration:2000,
+            position:5,
+            type:0
+        };
+
+        if(data != null && data != undefined)
+        {
+            if(data.duration != null && data.duration != undefined)
+            {
+                param.duration = data.duration;
+            }
+            if(data.position != null && data.position != undefined)
+            {
+                param.position = data.position;
+            }
+            if(data.type != null && data.type != undefined)
+            {
+                param.type = data.type;
+            }
+
+        }
+        /**
+         * msg：提示的内容
+         duration：toast窗口显示的时间，单位毫秒
+         position：位置 5 为中间
+         type：0 没有菊花圈，1 有菊花圈
+         **/
+        return appcan.window.openToast(param);
+        // appcan.window.openToast(msg,length,5,0);
+    },
+    /**
+     * 加载条 startBool 为true开始，false关闭
+     * @param startBool bool; 为true开始，false关闭,默认为启动加载条
+     * @param tag int;undefine：加载条，锁屏；1：全局对话框，不锁屏,可同时操作其他的;
+     * @param msg string;undefine：全局对话框，不锁屏,可同时操作其他的,显示默认信息；否则显示自定义信息
+     * **/
+    loadingCircle:function(startBool,tag,msg) {
+        setTimeout(function () {
+            PlatformOperate.verifyPlatform2(function () {
+                if(PlatformOperate.getPlatform(1) || PlatformOperate.getPlatform(2))
                 {
-                    chineseStr += cnNums[0];
+                    if(startBool ){
+                        if(tag == undefined)
+                        {
+                            uexLoadingView.openCircleLoading();
+
+                        }
+                        else if(tag == 1)
+                        {
+                            msg == undefined ? '正在加载,请稍候...' : msg;
+                            uexWindow.createProgressDialog({
+                                title:'',
+                                msg:msg,
+                                canCancel:0
+                            });
+                        }
+                    }
+                    else
+                    {
+                        if(tag == undefined)
+                        {
+                            uexLoadingView.close();
+                        }
+                        else if(tag == 1)
+                        {
+                            uexWindow.destroyProgressDialog();
+                        }
+                    }
                 }
-                // 归零
-                zeroCount = 0;
-                chineseStr += cnNums[parseInt(n)] + cnIntRadice[m];
-            }
+            },null);
+        },0);
 
-            if (m === 0 && zeroCount < 4)
-            {
-                chineseStr += cnIntUnits[q];
+        /*var params = {
+            "x":20,
+            "y":20,
+            "w":300,
+            "h":40,
+            "style":
+                {
+                    "styleId":0,
+                    "pointNum":4,
+                    "pointColor":["#ff4444", "#ffbb33", "#99cc00", "#33b5e5"]
+                }
+        };
+        uexLoadingView.open(JSON.stringify(params));*/
+    },
+    /**
+     * 异步加载js文件
+     * @param url string //js文件路径
+     * @param callBack string 回调函数；回传e,e为状态数据
+     * **/
+    loadedJsAsync:function(url, callBack) {
+        /**
+         * url为js的链接，callBack为url的js中的函数（该函数调用应该写到匿名函数中，
+         * 如function(){console.log(div.getScrollOffset())}）
+         * **/
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        /*if else 这几句话必须要写到这位置处，不能放最后，因为if中js加载中script.readyState存在好几种状态，
+         只有状态改变‘readystatechange’事件才会触发，但现在浏览器加载速度很快，当解析到该事件时JS有可能已经加载完，
+         所以事件根本不会触发，所以要写到前面*/
+        if (script.readystate) { //兼容IE
+            script.onreadystatechange = function(e) { //状态改变事件才触发
+                if (script.readyState == 'loaded' || script.readyState == 'complete') {
+                    callBack&&callBack(e);
+                    script.onreadystatechange = null;
+                }
+            }
+        } else {
+            script.onload = function(e) {
+                callBack&&callBack(e);
             }
         }
-
-        chineseStr += cnIntLast
+        script.src = url;
+        document.body.appendChild(script);
+        // return "jj";
     }
+};
 
-    // 小数部分
-    if (decimalNum !== '')
-    {
-        var decLen = decimalNum.length;
-        for (var j = 0; j < decLen; j++)
-        {
-            var num = decimalNum.substr(j, 1);
-            if (num !== '0')
-            {
-                chineseStr += cnNums[Number(num)] + cnDecUnits[j];
-            }
-        }
-    }
+LocalStoreOperate.setIsRefresh();
+window.onload = function () {
+    setTimeout(function () {
+        PlatformOperate.verifyPlatform(function () {
+            /**
+             * 设置video标签是否可以内嵌播放
+             * @param bool boolean;//true:允许内嵌播放，false:禁止内嵌播放;默认设置true
+             */
+            uexWindow&&uexWindow.setInlineMediaPlaybackEnable(true);
+        });
+    },1000);
+};
 
-    if (chineseStr === '')
-    {
-        chineseStr += cnNums[0] + cnIntLast + cnInteger;
-    }
-    else if (decimalNum === '')
-    {
-        chineseStr += cnInteger;
-    }
+/**
+ * 图片不存在显示默认图片
+ * @param imgPath string;//图片路径
+ * **/
+/*function nofind(imgPath){
+    var img = event.srcElement;
+    img.src = imgPath == undefined ? "../../images/nimg.jpg" : imgPath;
+    img.onerror = null; //控制不要一直跳动
+}*/
 
-    return chineseStr
-}
+
+
+
+
+
+
+
+
+
