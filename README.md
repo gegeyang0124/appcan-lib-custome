@@ -271,4 +271,85 @@ LocalStoreOperate.getRefreshData();//获取刷新回传数据
  DatabaseOperate.delDB();//删除数据库
 ```
 
+ ### DrawTableChart  画表图(js/原生)  DrawTableChart的部分方法，需要引入echarts.min.js才可运行，引入tools.js
+ ```html
+ <script src="tools.js"></script>
+ <script>
+ DrawTableChart.histogramHorizon();//条形柱水平柱状图
+ DrawTableChart.histogramRadian();//条形柱弧度图
+ DrawTableChart.drawCanvas();//条形柱水平状图
+ DrawTableChart.drawCanvas_1();//条形柱水平状图
+ DrawTableChart.drawPie();//饼图 一圆
+ DrawTableChart.drawPie2();//饼图 双圆
+ DrawTableChart.drawPie22();//饼图 双圆
+ DrawTableChart.drawBar();//画柱状图 单个
+ DrawTableChart.drawGraph();//折线图
+ DrawTableChart.histogramHorizon2();//矩形条形图
+ DrawTableChart.drawCanvas2();//条形柱水平柱状图
+ DrawTableChart.drawChartNative();// 画表图（原生），如折线图，比例图等
+```
+
+ ### ButtonOperate  额外按钮操作（原生），引入tools.js
+ ```html
+ <script src="tools.js"></script>
+ <script>
+ ButtonOperate.config;//配置信息
+ ButtonOperate.createButton();//创建按钮
+ ButtonOperate.closeButton();//移除按钮
+```
+
+ ### ActionSheetOperate  菜单操作对象（原生），引入tools.js
+ ```html
+ <script src="tools.js"></script>
+ <script>
+ ActionSheetOperate.menuBottom();//底部隐藏菜单
+ ActionSheetOperate.actionSheetCenter();//中央激活菜单
+```
+
+ ### StringOperate 字符串处理操作，引入tools.js
+ ```html
+ <script src="tools.js"></script>
+ <script>
+ StringOperate.replace();//替换指定位置的字符串
+ StringOperate.isNumber();//判断是否是数字
+ StringOperate.convertCurrency();//数字转化成汉子大写汉字
+```
+
+ ### HexagonalOperate 六棱柱菜单操作(原生)，引入tools.js
+ ```html
+ <script src="tools.js"></script>
+ <script>
+ HexagonalOperate.config;//配置数据
+ HexagonalOperate.open();//打开六棱柱菜单
+```
+
+ ### SlidingWindowOperate 侧滑窗口操作(原生)，引入tools.js
+ ```html
+ <script src="tools.js"></script>
+ <script>
+ SlidingWindowOperate.config;//配置数据
+ SlidingWindowOperate.setSlidingWindow();//设置侧滑窗口
+ SlidingWindowOperate.openSlidingWindow();//打开侧滑窗口
+ SlidingWindowOperate.closeSlidingWindow();//关闭侧滑
+```
+
+ ### ChannelAcrossOperate 跨页面通道并且传送数据，引入tools.js
+ ```html
+ <script src="tools.js"></script>
+ <script>
+ ChannelAcrossOperate.config;//配置数据
+ ChannelAcrossOperate.channel();//通道并获取数据
+ ChannelAcrossOperate.getChannel();//调取通道并获取数据
+ ChannelAcrossOperate.sendChannel();//发送数据到通道
+```
+
+ ### LoadingOperate 加载操作；toast提示窗；加载条；异步加载js文件，引入tools.js
+ ```html
+ <script src="tools.js"></script>
+ <script>
+ LoadingOperate.toast();//toast窗口的弹出和关闭（提示窗口）
+ LoadingOperate.loadingCircle();//加载条 startBool 为true开始，false关闭
+ LoadingOperate.loadedJsAsync();//异步加载js文件
+```
+
 ### [我的博客](http://blog.sina.com.cn/s/articlelist_6078695441_0_1.html)

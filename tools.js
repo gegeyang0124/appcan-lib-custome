@@ -4946,7 +4946,7 @@ var DatabaseOperate = {
  * **/
 var DrawTableChart = {
     /**
-     * 条形柱水平柱状图（巡店向导）
+     * 条形柱水平柱状图
      * @param id string//canvas元素id
      * @param sum1 number // 动态变化数值 计算数据
      * @param sum2 number //总长数值
@@ -5027,7 +5027,7 @@ var DrawTableChart = {
         },0);
     },
     /**
-     * 条形柱弧度图（巡店向导）
+     * 条形柱弧度图
      * @param id string//canvas元素id
      * @param sum1 number // 动态变化数值 计算数据
      * @param sum2 number //总长数值
@@ -5118,7 +5118,7 @@ var DrawTableChart = {
         },0);
     },
     /**
-     * 条形柱水平状图(业绩分析)
+     * 条形柱水平状图
      * @param id string  //canvas元素id
      *  @param sum1 number //动态变化数值
      *  @param sum2 number //图形总长
@@ -5184,7 +5184,7 @@ var DrawTableChart = {
         },0);
     },
     /**
-     * 条形柱水平状图(业绩分析)
+     * 条形柱水平状图
      * @param id string  //canvas元素id
      *  @param sum1 number //动态变化数值 百分比带小数点
      *  @param sum2 number //图形总长
@@ -5580,7 +5580,7 @@ var DrawTableChart = {
 
     },
     /**
-     * 折线图（诊断报告）
+     * 折线图
      * @param id string 实例化对象元素
      * @param data1 array x轴数值
      * @param data2 array 折线数值
@@ -5891,7 +5891,7 @@ var DrawTableChart = {
         },0);
     },
     /**
-     * 条形柱水平柱状图（巡店向导）
+     * 条形柱水平柱状图
      * @param id string//canvas元素id
      * @param sum1 number // 动态变化数值 计算数据
      * @param sum2 number //总长数值
@@ -5946,6 +5946,7 @@ var DrawTableChart = {
             }
         })
     },
+
     /**
      * 画表图（原生），如折线图，比例图等
      * @param tag int ;0//饼状图
@@ -6627,7 +6628,8 @@ var SlidingWindowOperate = {
      * 关闭侧滑
      * **/
     closeSlidingWindow:function () {
-        /**是否可用,0:不可用,1:可用
+        /**
+         * 是否可用,0:不可用,1:可用
          * **/
         uexWindow.setSlidingWindowEnabled(0);
     },
@@ -6638,7 +6640,7 @@ var SlidingWindowOperate = {
  * **/
 var ChannelAcrossOperate = {
     /**
-     * 配置
+     * 配置信息
      * **/
     config:{
         channelId:"channelId",//通道id
