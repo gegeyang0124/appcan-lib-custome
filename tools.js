@@ -197,7 +197,7 @@ var ScrollPositonOperate = {
         // LoadingOperate.toast(ScrollPositonOperate.posion.contHeight);
     },
     /**
-     * 上下滚动，事件
+     * 上下滚动，事件 appcan
      * @param id,//滚动标签Id
      * @param callbackDwonFunc function,//上拉触底促发事件
      * @param callbackUpFunc function,//下拉刷新促发事件
@@ -233,14 +233,17 @@ var ScrollPositonOperate = {
  * 页面跳转 传值和取值的函数集
  * **/
 var PageGuideOperate = {
+    /**
+     * 配置数据
+     * **/
     config:{
         isOpenedWeb:false,//是否已经打开浏览器
     },
     /**
      * 打开页面 全路径
      * @param title 页面标识，在移动平台有用
-     *@param pageSrc 页面路径 全路径
-     *@param flag number,//页面标记 flag=128时页面支持缩放,默认为0
+     * @param pageSrc 页面路径 全路径
+     * @param flag number,//页面标记 flag=128时页面支持缩放,默认为0
      *  **/
     openPageFullPath:function(title,pageSrc,flag) {
         // alert(pageSrc.substring((pageSrc.indexOf('?') + 1)));
@@ -470,28 +473,6 @@ var PageGuideOperate = {
 
         return data;
 
-    },
-    /**
-     * 页面传递数据转化json
-     * **/
-    getHrefDataJson:function() {
-        var param = PageGuideOperate.getHrefData();
-
-        if(param != '' && param != null && param != undefined)
-        {
-            param = JSON.parse(param);
-            // alert(param);
-        }
-        else
-        {
-            param = {
-                id:'',//任务id
-                title:'新店选址',//标题栏信息
-            }
-            // alert("d");
-        }
-
-        return param;
     },
     /**
      * 返回上一页刷新
@@ -973,14 +954,7 @@ var DialogOperate = {
         DialogOperate.alrBtn2("是否确认",msg,callback);
     },
     /**
-     * 对话框,2个按钮，步骤提示
-     * @param callback function,//回调函数
-     * **/
-    alrBtn22Step:function(callback) {
-        DialogOperate.alrBtn22("本步骤已操作完成，点击确认进入,下一步骤后，将不可返回本步骤",callback);
-    },
-    /**
-     * 对话框 2个按钮
+     * 对话框 多个按钮
      * @param title string,//提示文本
      * @param msg string,//显示内容文本
      * @param btnList array,//按钮数组
@@ -1503,6 +1477,9 @@ var ImgOperate = {
  * 上下左右滑动监控,上拉加载更多，下拉刷新等
  * **/
 var SwipeOperate = {
+    /**
+     * 配置信息
+     * **/
     config:{
         isSlideBottom:true,//上下划底是否弹动，true是，反之不是
         type:1,//	 Number	是	弹动的位置,0:顶端;1:底部
@@ -2496,7 +2473,8 @@ var TimerOperate = {
         return timeObj;
 
     },
-    /**选择日期
+    /**
+     * 选择日期（原生）
      * @param opt ,0打开日历，1时关闭日历
      * @param func function,选中日期后的回调函数，回传的数据params，
      * func = function(params){
@@ -2733,7 +2711,6 @@ var DownloaderMgr = {
         });
 
     },
-
 };
 
 /**
@@ -3433,6 +3410,9 @@ var FileMgrOperate = {
  * 地理定位操作 （原生/Js）
  * **/
 var LocationOperate ={
+    /**
+     * 上一次定位数据
+     * **/
     locationData:LocalStoreOperate.getData("location"),
     /**
      * 得到定位
