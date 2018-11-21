@@ -3688,7 +3688,9 @@ var LocationOperate ={
  * 加载百度地图（js/原生，原生：baiduGeoMapCtrlNative）
  * **/
 var BaiduGeoMapCtrl = {
-    //初始化地图所需数据
+    /**
+     * 初始化地图所需配置数据
+     */
     config:{
         map:null,//BMap.Map,百度地图实例
         idTag:'allmap',//显示地图区的标签id ,不允许自定义标签id
@@ -3708,14 +3710,18 @@ var BaiduGeoMapCtrl = {
         infos:[],//弹出气泡窗口
         markersObjLst:[],//标注对象列
     },
-    //添加script
+    /**
+     * 添加script js
+     * **/
     loadJScript:function () {
         var script = document.createElement("script");
         script.type = "text/javascript";
         script.src = "http://api.map.baidu.com/api?v=2.0&ak=C93b5178d7a8ebdb830b9b557abce78b&callback=BaiduGeoMapCtrl.init";
         document.body.appendChild(script);
     },
-    //初始化地图
+    /**
+     * 初始化地图
+     * **/
     init:function () {
         var map = null;
         if(BaiduGeoMapCtrl.config.map == null)
