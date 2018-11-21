@@ -5,7 +5,7 @@
 /**
  * 封装的方法：
  ScrollPositonOperate; //获取滚动页面的滚动位置，或滚动到指定位置
- toast ;//toast窗口的弹出和关闭（提示窗口）
+ LoadingOperate.toast ;//toast窗口的弹出和关闭（提示窗口）
  getPlatform; verifyPlatform2; verifyPlatform;//判断当前平台
  loading；//加载条
  alr; alrBtn; alrBtn2; alr2; alrBtn22; alrBtn22Step;//对话框
@@ -54,22 +54,6 @@
  * **/
 
 var ONE_DAY_TIME = 86400000;//一天的时间，单位毫秒
-var videoRecordTimeConfig = undefined;//乐歆app录制视频配置时间长
-var app_id = 1324869682;
-var app_config = {
-    app_id:app_id,//appid苹果官网appid
-    version :"2.8",//当前版本号；后台配置文件是最新的app版本 VERSION = 1.1
-    app_url:urlSets.urlAppleAPPDownload + "/id" + app_id + "?l=en&mt=8",//app下载地址，后台下载地址APP_URL 以后台为准；
-};//app配置信息
-var app_config_service = null;//app后台配置信息
-var userInfoData = null;//用户信息
-var isPush = true;//是否启动推送; true启动，false不启动
-
-
-
-
-
-
 
 /**
  * 平台验证操作，可获取在什么平台，主要是Android/ios/浏览器
@@ -100,7 +84,7 @@ var PlatformOperate = {
                 return (window.navigator.userAgent.indexOf('Brewer') >= 0)? true : false;
             }
             case 1:{
-                return (window.navigator.userAgent.indexOf('Android') >= 0)? true : !isPush;
+                return (window.navigator.userAgent.indexOf('Android') >= 0)? true : false;
             }
             case 2:{
                 return (window.navigator.userAgent.indexOf('OS') >= 0) ? true : false;
@@ -210,7 +194,7 @@ var ScrollPositonOperate = {
     getContTagHeight:function (tagId) {
         ScrollPositonOperate.posion.contHeight = document.getElementById(tagId).offsetHeight;
         ScrollPositonOperate.posion.contHeightFinal = ScrollPositonOperate.posion.contHeight;
-        // toast(ScrollPositonOperate.posion.contHeight);
+        // LoadingOperate.toast(ScrollPositonOperate.posion.contHeight);
     },
     /**
      * 上下滚动，事件
@@ -756,7 +740,7 @@ var DeviceOperate = {
         var internetInfo = uexDevice.getInfo(13);
         if(internetInfo == -1)
         {
-            toast("无法连接网络");
+            LoadingOperate.toast("无法连接网络");
         }
         return internetInfo;
     },
@@ -1565,7 +1549,7 @@ var SwipeOperate = {
                  //      state	Number	是	状态值,0:滑动事件开始;1:刷新事件开始;2:滑动事件结束
                  //      * */
             uexWindow.onBounceStateChange = function(type, state) {
-                // toast("onBounceStateChange");
+                // LoadingOperate.toast("onBounceStateChange");
                 setTimeout(function () {
                     SwipeOperate.closeSpringingView();
 
@@ -1577,7 +1561,7 @@ var SwipeOperate = {
              * **/
             uexWindow.onSlipedUpEdge = function () {
                 uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
-                // toast("refresh:");
+                // LoadingOperate.toast("refresh:");
                 // SwipeOperate.startSringingView("",0);
                 if(funcTop != undefined && funcTop != null)
                 {
@@ -1675,7 +1659,7 @@ var SwipeOperate = {
 
               //state: 状态值,0:回到前台;1:压入后台
               uexWindow.onStateChange = function(state){
-                  // toast(state);
+                  // LoadingOperate.toast(state);
                   // alert(state);
                   if(state == 0 && callbackFuncPre != undefined)
                   {
@@ -1884,7 +1868,7 @@ var SwipeOperate = {
              //      state	Number	是	状态值,0:滑动事件开始;1:刷新事件开始;2:滑动事件结束
              //      * */
             uexWindow.onBounceStateChange = function(type, state) {
-                // toast("onBounceStateChange");
+                // LoadingOperate.toast("onBounceStateChange");
                 setTimeout(function () {
                     SwipeOperate.closeSpringingView();
                 },1000);
@@ -1942,7 +1926,7 @@ var SwipeOperate = {
              * **/
             uexWindow.onSlipedUpEdge = function () {
                 uexWindow.setBounce(0);//是否支持网页弹动1支持，0不支持
-                // toast("refresh:");
+                // LoadingOperate.toast("refresh:");
                 // SwipeOperate.startSringingView("",0);
                 if(funcTop != undefined && funcTop != null)
                 {
@@ -2190,7 +2174,7 @@ var SwipeOperateJS = {
             endx = e.changedTouches[0].pageX;
             endy = e.changedTouches[0].pageY;
 
-            // toast("starty:" + starty + "\n"  + "endy:" + endy);
+            // LoadingOperate.toast("starty:" + starty + "\n"  + "endy:" + endy);
 
             /* var direction = getDirection(startx, starty, endx, endy);
              switch (direction) {
@@ -2638,7 +2622,7 @@ var DownloaderMgr = {
         PlatformOperate.verifyPlatform(function () {
             DownloaderMgr.config.downloader = uexDownloaderMgr.create();
             if(!DownloaderMgr.config.downloader){
-                toast("失败!");
+                LoadingOperate.toast("失败!");
             }
             else
             {
@@ -2701,7 +2685,7 @@ var DownloaderMgr = {
 
                             switch (info.status) {
                                 case 0:
-                                    toast("下载进度" + info.percent + "%",{duration:0,
+                                    LoadingOperate.toast("下载进度" + info.percent + "%",{duration:0,
                                         position:5,
                                         type:1});
                                     break;
@@ -2714,7 +2698,7 @@ var DownloaderMgr = {
 
                                     break;
                                 case 2:
-                                    toast("下载失败");
+                                    LoadingOperate.toast("下载失败");
                                     DownloaderMgr.cancelDownload(serverURL);
                                     DownloaderMgr.closeDownloader();
                                     break;
@@ -2779,16 +2763,14 @@ var MediaMgrOperate = {
             // alert("recorde");
             if(func != null && func != undefined)
             {
-                // alert("recorde");
-                // alert("recorde: " + videoRecordTimeConfig);
                 //onRecordFinish(info) //录制结束的监听方法
                 uexVideo.onRecordFinish = function (info) {
 
                     /**
                      info = {
-        result,//	Number	录制结果. 0-录制成功 1-用户取消录制 2-视频录制或者压缩过程发送错误
-        path,//	String	仅录制成功时才会有此参数,录制压缩得到的视频文件路径
-       }
+                               result,//	Number	录制结果. 0-录制成功 1-用户取消录制 2-视频录制或者压缩过程发送错误
+                               path,//	String	仅录制成功时才会有此参数,录制压缩得到的视频文件路径
+                           }
                      * **/
 
                     info = JSON.parse(info);//alert(JSON.stringify(info))
@@ -2807,9 +2789,8 @@ var MediaMgrOperate = {
 
             if(leng == null || leng != undefined)
             {
-                leng = videoRecordTimeConfig == undefined ? 60 : videoRecordTimeConfig;
+                leng = 60;
             }
-
 
             /*
              参数名称	参数类型	是否必选	说明
@@ -3132,7 +3113,7 @@ var MediaMgrOperate = {
                 }
                 else
                 {
-                    toast("失败！请检查摄像头权限！");
+                    LoadingOperate.toast("失败！请检查摄像头权限！");
                 }
 
             }
@@ -3509,7 +3490,7 @@ var LocationOperate ={
             uexLocation.openLocation("bd09",function (err) {
                 if(isPrompt == undefined)
                 {
-                    toast("正在定位......");
+                    LoadingOperate.toast("正在定位......");
                 }
                 // alert("err:  " + err + "  err ："  + err);
                 if(!err)
@@ -4114,7 +4095,7 @@ var JPush = {
             }
             else
             {
-                toast("别名设置失败");
+                LoadingOperate.toast("别名设置失败");
             }
 
         });
@@ -4144,7 +4125,7 @@ var JPush = {
             }
             else
             {
-                toast("标签设置失败");
+                LoadingOperate.toast("标签设置失败");
             }
         });
     },
@@ -4185,7 +4166,7 @@ var JPush = {
                 }
                 else
                 {
-                    toast("别名和标签设置失败");
+                    LoadingOperate.toast("别名和标签设置失败");
                 }
             });
         });
@@ -4217,11 +4198,11 @@ var JPush = {
 
             if(DeviceOperate.config.onloadFunc != null)
             {
-                DeviceOperate.config.onloadFunc(isPush);
+                DeviceOperate.config.onloadFunc(true);
             }
 
             PlatformOperate.verifyPlatform(function () {
-                if(isPush)
+                if(true)
                 {
                     JPush.config.alias = configJson != undefined && configJson != null
                         ? configJson.alias == undefined
@@ -4260,7 +4241,7 @@ var JPush = {
                         if(obj.status=="ok")
                         {
                             /*
-                            toast("正在配置重启动",{
+                            LoadingOperate.toast("正在配置重启动",{
                                 duration:2000,
                                 type:1
                             });*/
@@ -6094,7 +6075,7 @@ var DrawTableChart = {
             }
         }
     }
-}
+};
 
 /**
  * 额外按钮操作（原生）
@@ -6577,7 +6558,7 @@ var HexagonalOperate = {
 
         //点击item的监听方法
         uexHexagonal.onItemClick = function(index){
-            // toast("onItemClick" + index);
+            // LoadingOperate.toast("onItemClick" + index);
             uexHexagonal.close();
             if(callbackFunc != undefined && callbackFunc != null)
             {
