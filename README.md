@@ -181,7 +181,7 @@ LocalStoreOperate.getRefreshData();//获取刷新回传数据
  DownloaderMgr.closeDownloader();//关闭下载对象
   ```
   
- ### MediaMgrOperate 操作视频 （原生），引入tools.js
+ ### MediaMgrOperate 操作视频、音频 （原生），引入tools.js
  ```html
  <script src="tools.js"></script>
  <script>
